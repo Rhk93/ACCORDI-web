@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Accordi">
+<meta name="theme-color" content="#14161B">
+<title>Accordi per Chitarra</title>
+<style>
+  :root {
+    --sfondo:#14161B; --carta:#1F232B; --testo:#F2F2F2; --grigio:#9AA0AA;
+    --corde:#C9CDD3; --tasti:#6B7280; --accento:#FF9F1C; --suAccento:#1A1A1A;
+    --font: -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
+    --peso: 400; --st: 1;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; background:var(--sfondo); color:var(--testo); font-family:var(--font); font-weight:var(--peso); }
+  body {
+    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+             calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .testata { display:flex; align-items:center; gap:8px; }
+  .testata h1 { flex:1; margin:0; font-size:calc(22px*var(--st)); font-weight:700; }
+  .etichetta { color:var(--grigio); font-size:calc(12px*var(--st)); font-weight:700; letter-spacing:.04em; margin:14px 2px 6px; text-transform:uppercase; }
+  .riga { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+  .riga::-webkit-scrollbar { display:none; }
+  button.b {
+    flex:0 0 auto; font-family:inherit; font-size:calc(15px*var(--st)); font-weight:700; line-height:1.2;
+    color:var(--testo); background:var(--carta); border:1px solid var(--tasti);
+    border-radius:12px; padding:8px 14px; min-width:52px; cursor:pointer; white-space:pre-line;
+  }
+  button.b.on { background:var(--accento); color:var(--suAccento); border-color:var(--accento); }
+  .sigla { color:var(--accento); font-size:calc(34px*var(--st)); font-weight:700; margin-top:10px; }
+  .nome { font-size:calc(16px*var(--st)); }
+  .note { color:var(--grigio); font-size:calc(14px*var(--st)); margin:2px 0 8px; }
+  .griglia { display:grid; gap:8px; grid-template-columns:repeat(var(--col,2), minmax(0,1fr)); }
+  .scheda { background:var(--carta); border-radius:14px; padding:8px; display:flex; flex-direction:column; gap:4px; }
+  .scheda h3 { margin:0; text-align:center; font-size:calc(13px*var(--st)); font-weight:700; }
+  .scheda canvas { width:100%; display:block; cursor:pointer; }
+  .tab { text-align:center; color:var(--grigio); font-size:calc(12px*var(--st)); }
+  .scheda button.b { width:100%; margin-top:4px; }
+
+  /* Pannello Personalizza */
+  #pannello { position:fixed; inset:0; background:var(--sfondo); z-index:10; display:none; flex-direction:column;
+    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left)); }
+  #pannello.aperto { display:flex; }
+  #pannello .interno { max-width:1100px; width:100%; margin:0 auto; display:flex; flex-direction:column; min-height:0; flex:1; }
+  #anteprima { flex:0 0 auto; }
+  #opzioni { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+  .pallino { flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:3px solid transparent; font-size:18px; font-weight:700; cursor:pointer; }
+  .pallino.on { border-color:var(--testo); }
+  input[type=range] { width:100%; accent-color:var(--accento); height:32px; }
+  .nascosto { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="testata">
+    <h1>Accordi per Chitarra</h1>
+    <button class="b" id="apriStile">⚙&nbsp; Stile</button>
+  </div>
+
+  <div class="etichetta">Nota</div>
+  <div class="riga" id="rigaNote"></div>
+
+  <div class="etichetta">Tipo di accordo</div>
+  <div class="riga" id="rigaTipi"></div>
+
+  <div class="sigla" id="sigla"></div>
+  <div class="nome" id="nome"></div>
+  <div class="note" id="note"></div>
+
+  <div class="griglia" id="schemi"></div>
+</div>
+
+<div id="pannello">
+  <div class="interno">
+    <div class="testata">
+      <button class="b" id="chiudiStile">←&nbsp; Indietro</button>
+      <h1>&nbsp;Personalizza</h1>
+    </div>
+    <div id="anteprima"></div>
+    <div id="opzioni"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// =====================================================================
+//  MOTORE DEGLI ACCORDI (stesso algoritmo dell'app Android)
+// =====================================================================
+const ACCORDATURA = [40, 45, 50, 55, 59, 64];
+const TONICHE    = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const TONICHE_IT = ["Do","Do#","Re","Mib","Mi","Fa","Fa#","Sol","Lab","La","Sib","Si"];
+const DIESIS     = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const BEMOLLI    = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+const DIESIS_IT  = ["Do","Do#","Re","Re#","Mi","Fa","Fa#","Sol","Sol#","La","La#","Si"];
+const BEMOLLI_IT = ["Do","Reb","Re","Mib","Mi","Fa","Solb","Sol","Lab","La","Sib","Si"];
+
+function T(sigla, nome, minore, iv, om) { return { sigla, nome, minore, iv, om: om || [] }; }
+const Q = [7];
+const TIPI = [
+  T("",       "maggiore",                 false, [0,4,7]),
+  T("m",      "minore",                   true,  [0,3,7]),
+  T("7",      "settima (di dominante)",   false, [0,4,7,10], Q),
+  T("maj7",   "settima maggiore",         false, [0,4,7,11], Q),
+  T("m7",     "minore settima",           true,  [0,3,7,10], Q),
+  T("m(maj7)","minore settima maggiore",  true,  [0,3,7,11], Q),
+  T("6",      "sesta",                    false, [0,4,7,9], Q),
+  T("m6",     "minore sesta",             true,  [0,3,7,9], Q),
+  T("sus2",   "seconda sospesa",          false, [0,2,7]),
+  T("sus4",   "quarta sospesa",           false, [0,5,7]),
+  T("7sus4",  "settima quarta sospesa",   false, [0,5,7,10], Q),
+  T("add9",   "maggiore nona aggiunta",   false, [0,4,7,2]),
+  T("madd9",  "minore nona aggiunta",     true,  [0,3,7,2]),
+  T("9",      "nona",                     false, [0,4,7,10,2], Q),
+  T("m9",     "minore nona",              true,  [0,3,7,10,2], Q),
+  T("maj9",   "nona maggiore",            false, [0,4,7,11,2], Q),
+  T("6/9",    "sesta e nona",             false, [0,4,7,9,2], Q),
+  T("7b9",    "settima nona bemolle",     false, [0,4,7,10,1], Q),
+  T("7#9",    "settima nona aumentata",   false, [0,4,7,10,3], Q),
+  T("11",     "undicesima",               false, [0,7,10,2,5], [7,2]),
+  T("13",     "tredicesima",              false, [0,4,10,9,7,2], [7,2]),
+  T("dim",    "diminuito",                true,  [0,3,6]),
+  T("dim7",   "settima diminuita",        true,  [0,3,6,9]),
+  T("m7b5",   "semidiminuito",            true,  [0,3,6,10]),
+  T("aug",    "aumentato",                false, [0,4,8]),
+  T("7#5",    "settima quinta aumentata", false, [0,4,8,10]),
+  T("5",      "bicordo (power chord)",    false, [0,7]),
+];
+
+function usaBemolli(ton, tipo) {
+  const n = TONICHE[ton];
+  if (n.includes("b") || n === "F") return true;
+  return tipo.minore && (n === "C" || n === "D" || n === "G");
+}
+function nomeNota(c, bem, it) {
+  c = ((c % 12) + 12) % 12;
+  return it ? (bem ? BEMOLLI_IT[c] : DIESIS_IT[c]) : (bem ? BEMOLLI[c] : DIESIS[c]);
+}
+function siglaAccordo(ton, tipo) { return TONICHE[ton] + tipo.sigla; }
+function noteAccordo(ton, tipo) {
+  const b = usaBemolli(ton, tipo);
+  const en = tipo.iv.map(i => nomeNota(ton + i, b, false)).join(" - ");
+  const it = tipo.iv.map(i => nomeNota(ton + i, b, true)).join(" - ");
+  return en + "   (" + it + ")";
+}
+function testoTab(p) {
+  return p.tasti.map(t => t < 0 ? "x" : (t > 9 ? "(" + t + ")" : String(t))).join("");
+}
+function noteMidi(p) {
+  const r = [];
+  for (let i = 0; i < 6; i++) if (p.tasti[i] >= 0) r.push(ACCORDATURA[i] + p.tasti[i]);
+  return r;
+}
+function zona(p) { return p.tasti.includes(0) ? 0 : p.tastoMin; }
+
+const cache = {};
+function posizioni(ton, tipoI) {
+  const k = ton + "|" + tipoI;
+  if (!cache[k]) cache[k] = calcola(ton, TIPI[tipoI]);
+  return cache[k];
+}
+
+function calcola(ton, tipo) {
+  const nell = new Array(12).fill(false);
+  tipo.iv.forEach(i => nell[(ton + i) % 12] = true);
+  const minCorde = tipo.iv.length <= 2 ? 2 : 4;
+  const trovate = new Map();
+
+  for (let base = 1; base <= 13; base++) {
+    const opz = [];
+    for (let s = 0; s < 6; s++) {
+      const o = [-1];
+      if (base === 1 && nell[ACCORDATURA[s] % 12]) o.push(0);
+      for (let f = base; f <= base + 3; f++) if (nell[(ACCORDATURA[s] + f) % 12]) o.push(f);
+      opz.push(o);
+    }
+    const cur = [0,0,0,0,0,0];
+    (function esplora(s) {
+      if (s === 6) {
+        const p = valuta(cur, ton, tipo, minCorde);
+        if (p) { const key = p.tasti.join(","); if (!trovate.has(key)) trovate.set(key, p); }
+        return;
+      }
+      for (const f of opz[s]) { cur[s] = f; esplora(s + 1); }
+    })(0);
+  }
+
+  const tutte = Array.from(trovate.values());
+  tutte.sort((a, b) => (b.punteggio - a.punteggio) || (zona(a) - zona(b)));
+  const scelte = [];
+  for (const p of tutte) {
+    if (scelte.length >= 7) break;
+    const z = zona(p);
+    const vicina = scelte.some(q => {
+      const zq = zona(q);
+      return (z === 0 && zq === 0) || (z !== 0 && zq !== 0 && Math.abs(z - zq) < 2);
+    });
+    if (!vicina) scelte.push(p);
+  }
+  scelte.sort((a, b) => zona(a) - zona(b));
+  return scelte;
+}
+
+function valuta(t, ton, tipo, minCorde) {
+  let primo = 0;
+  while (primo < 6 && t[primo] < 0) primo++;
+  if (primo >= 6) return null;
+  let ultimo = 5;
+  while (ultimo > primo && t[ultimo] < 0) ultimo--;
+  if (ultimo < 4 && tipo.iv.length > 2) return null;
+  for (let i = primo; i <= ultimo; i++) if (t[i] < 0) return null;
+
+  const corde = ultimo - primo + 1;
+  if (corde < minCorde) return null;
+  if (tipo.iv.length === 2 && (corde > 3 || primo > 2)) return null;
+  if ((ACCORDATURA[primo] + t[primo]) % 12 !== ton) return null;
+
+  const pres = new Array(12).fill(false);
+  for (let i = primo; i <= ultimo; i++) pres[(ACCORDATURA[i] + t[i]) % 12] = true;
+  let completa = true;
+  for (const iv of tipo.iv) {
+    if (!pres[(ton + iv) % 12]) {
+      if (tipo.om.includes(iv)) completa = false; else return null;
+    }
+  }
+
+  let min = 99, max = 0, premute = 0, vuote = 0;
+  for (let i = primo; i <= ultimo; i++) {
+    if (t[i] > 0) { premute++; min = Math.min(min, t[i]); max = Math.max(max, t[i]); }
+    else if (t[i] === 0) vuote++;
+  }
+  if (premute === 0) { min = 0; max = 0; }
+  if (max - min > 3) return null;
+  if (vuote > 0 && max > 4) return null;
+
+  const p = { tasti: t.slice(), dita: [0,0,0,0,0,0], barre: 0, barreDa: -1, barreA: -1, tastoMin: min, tastoMax: max, punteggio: 0 };
+
+  let contaMin = 0;
+  for (let i = primo; i <= ultimo; i++) if (t[i] === min && min > 0) contaMin++;
+  let barre = false, bDa = -1, bA = -1;
+  if (premute > 4 || (contaMin >= 2 && premute > 3) || contaMin >= 3) {
+    if (contaMin >= 2) {
+      for (let i = primo; i <= ultimo; i++) if (t[i] === min) { bDa = i; break; }
+      for (let i = ultimo; i >= primo; i--) if (t[i] === min) { bA = i; break; }
+      let ok = true;
+      for (let i = bDa; i <= bA; i++) if (t[i] < min) ok = false;
+      if (ok) {
+        barre = true;
+        let fino = true;
+        for (let i = bA; i <= ultimo; i++) if (t[i] < min) fino = false;
+        if (fino) bA = ultimo;
+      }
+    }
+  }
+  let dita;
+  if (barre) {
+    let altre = 0;
+    for (let i = primo; i <= ultimo; i++) if (t[i] > min) altre++;
+    dita = 1 + altre;
+  } else dita = premute;
+  if (dita > 4) return null;
+
+  assegnaDita(p, barre, primo, ultimo);
+  if (barre) { p.barre = min; p.barreDa = bDa; p.barreA = bA; }
+
+  let punti = corde * 4 - dita * 2;
+  if (completa) punti += 4;
+  if (barre) punti -= 1;
+  punti += vuote;
+  if (primo <= 1) punti += 2;
+  if (min > 0) punti -= Math.floor(min / 4);
+  if (vuote > 0) punti -= max * 2;
+  p.punteggio = punti;
+  return p;
+}
+
+function assegnaDita(p, barre, primo, ultimo) {
+  const t = p.tasti, min = p.tastoMin;
+  const idx = [];
+  for (let i = primo; i <= ultimo; i++) if (t[i] > 0 && !(barre && t[i] === min)) idx.push(i);
+  idx.sort((a, b) => (t[a] - t[b]) || (a - b));
+  let dito = barre ? 2 : 1;
+  let ultimoTasto = barre ? min : -1;
+  let liberi = 4 - (barre ? 1 : 0) - idx.length;
+  for (const i of idx) {
+    if (ultimoTasto > 0 && t[i] - ultimoTasto >= 2 && liberi > 0) { dito++; liberi--; }
+    p.dita[i] = Math.min(dito, 4);
+    dito++;
+    ultimoTasto = t[i];
+  }
+  if (barre) for (let i = primo; i <= ultimo; i++) if (t[i] === min) p.dita[i] = 1;
+}
+
+// =====================================================================
+//  IMPOSTAZIONI
+// =====================================================================
+const TEMI = [
+  { nome:"Notte",     sfondo:"#14161B", carta:"#1F232B", testo:"#F2F2F2", grigio:"#9AA0AA", corde:"#C9CDD3", tasti:"#6B7280" },
+  { nome:"Chiaro",    sfondo:"#F2F2EF", carta:"#FFFFFF", testo:"#1C1C1C", grigio:"#6B6B6B", corde:"#4A4A4A", tasti:"#A3A3A3" },
+  { nome:"Legno",     sfondo:"#2B1D14", carta:"#3A281C", testo:"#F5E6D3", grigio:"#C2A88D", corde:"#E8D9C0", tasti:"#8C6E52" },
+  { nome:"Oceano",    sfondo:"#0B1E2D", carta:"#12304A", testo:"#E6F4FF", grigio:"#8FB3CC", corde:"#CFE6F5", tasti:"#4E7391" },
+  { nome:"Seppia",    sfondo:"#F3E9D2", carta:"#FBF5E6", testo:"#3B2F1E", grigio:"#7A6A50", corde:"#5A4A33", tasti:"#B8A585" },
+  { nome:"Bosco",     sfondo:"#102018", carta:"#1A3326", testo:"#E8F5EC", grigio:"#93B5A0", corde:"#D2E8DA", tasti:"#557A63" },
+  { nome:"Contrasto", sfondo:"#000000", carta:"#141414", testo:"#FFFFFF", grigio:"#D0D0D0", corde:"#FFFFFF", tasti:"#9A9A9A" },
+];
+const ACCENTI = [
+  ["Arancio","#FF9F1C"],["Rosso","#EF4444"],["Verde","#22C55E"],["Azzurro","#38BDF8"],
+  ["Blu","#2563EB"],["Viola","#A78BFA"],["Rosa","#F472B6"],["Giallo","#FACC15"],
+];
+const FONT = [
+  ["Normale",    '-apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif', 400],
+  ["Serif",      'Georgia, "Times New Roman", serif', 400],
+  ["Monospace",  'Menlo, "SF Mono", Consolas, monospace', 400],
+  ["Condensato", '"Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif', 400],
+  ["Sottile",    '"Helvetica Neue", "Segoe UI", Roboto, sans-serif', 300],
+  ["Arrotondato",'ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", sans-serif', 400],
+  ["Corsivo",    '"Snell Roundhand", "Apple Chancery", "Segoe Script", cursive', 400],
+];
+
+const PREDEFINITE = { tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:false, mancino:false, italiano:false, colonne:2, tonica:0, tipo:0 };
+let imp = Object.assign({}, PREDEFINITE);
+try {
+  const s = JSON.parse(localStorage.getItem("accordi-impostazioni") || "null");
+  if (s) imp = Object.assign(imp, s);
+} catch (e) {}
+function salva() { try { localStorage.setItem("accordi-impostazioni", JSON.stringify(imp)); } catch (e) {} }
+
+function luminosita(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+}
+function colori() {
+  const t = TEMI[imp.tema], a = ACCENTI[imp.accento][1];
+  return { ...t, accento: a, suAccento: luminosita(a) > 0.55 ? "#1A1A1A" : "#FFFFFF", rossoX: "#EF4444" };
+}
+function applicaStile() {
+  const c = colori(), r = document.documentElement.style;
+  r.setProperty("--sfondo", c.sfondo); r.setProperty("--carta", c.carta);
+  r.setProperty("--testo", c.testo); r.setProperty("--grigio", c.grigio);
+  r.setProperty("--corde", c.corde); r.setProperty("--tasti", c.tasti);
+  r.setProperty("--accento", c.accento); r.setProperty("--suAccento", c.suAccento);
+  r.setProperty("--font", FONT[imp.font][1]); r.setProperty("--peso", FONT[imp.font][2]);
+  r.setProperty("--st", imp.testo / 100);
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", c.sfondo);
+}
+
+// =====================================================================
+//  DISEGNO DELLO SCHEMA (verticale o orizzontale, destrorso o mancino)
+// =====================================================================
+function altezzaSchema() { return (imp.orizzontale ? 125 : 200) * imp.immagini / 100; }
+
+function disegna(canvas, p, ton, bem) {
+  const w = canvas.clientWidth, h = altezzaSchema();
+  if (!w) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.height = h + "px";
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  const cx = canvas.getContext("2d");
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx.clearRect(0, 0, w, h);
+
+  const C = colori(), k = imp.immagini / 100, orizz = imp.orizzontale, manc = imp.mancino;
+  const famiglia = FONT[imp.font][1], pesoN = FONT[imp.font][2];
+  const font = (size, bold) => (bold ? "700 " : pesoN + " ") + size + "px " + famiglia;
+  const TV = 5;
+  const inizio = p.tastoMax <= 5 ? 1 : p.tastoMin;
+  let ox, oy, passoC, passoT, lungo;
+
+  if (!orizz) {
+    const sopra = 26 * k, sotto = 22 * k, lato = 28 * k;
+    const alt = h - sopra - sotto;
+    const larg = Math.min(w - 2 * lato, alt * 1.05);
+    passoC = larg / 5; passoT = alt / TV; lungo = alt;
+    ox = (w - larg) / 2; oy = sopra;
+  } else {
+    const vicino = 26 * k, latoNomi = 34 * k, su = 24 * k, giu = 8 * k;
+    const alt = h - su - giu;
+    passoC = alt / 5;
+    const larg = Math.min(w - vicino - latoNomi, alt * 2.4);
+    passoT = larg / TV; lungo = larg;
+    const tot = vicino + larg + latoNomi;
+    ox = (w - tot) / 2 + (manc ? latoNomi : vicino); oy = su;
+  }
+  const px = (s, u) => !orizz ? ox + (manc ? 5 - s : s) * passoC : (manc ? ox + lungo - u * passoT : ox + u * passoT);
+  const py = (s, u) => !orizz ? oy + u * passoT : oy + (5 - s) * passoC;
+  const linea = (x1, y1, x2, y2, col, sp) => { cx.strokeStyle = col; cx.lineWidth = sp; cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke(); };
+  const scrivi = (txt, x, y, col, size, bold, align) => { cx.fillStyle = col; cx.font = font(size, bold); cx.textAlign = align; cx.textBaseline = "alphabetic"; cx.fillText(txt, x, y); };
+
+  for (let i = 0; i <= TV; i++) linea(px(0, i), py(0, i), px(5, i), py(5, i), C.tasti, 1.5 * k);
+  if (inizio === 1) {
+    cx.lineCap = "round";
+    linea(px(0, 0), py(0, 0), px(5, 0), py(5, 0), C.testo, 5 * k);
+    cx.lineCap = "butt";
+  } else {
+    const n = inizio + "ª";
+    if (!orizz) scrivi(n, manc ? ox + 5 * passoC + 8 * k : ox - 8 * k, py(0, 0.5) + 4 * k, C.grigio, 12 * k, true, manc ? "left" : "right");
+    else scrivi(n, px(0, 0.5), oy - 9 * k, C.grigio, 12 * k, true, "center");
+  }
+  for (let s = 0; s < 6; s++) linea(px(s, 0), py(s, 0), px(s, TV), py(s, TV), C.corde, (2.2 - s * 0.25) * k);
+
+  const r = Math.min(passoC, passoT) * 0.36;
+  cx.fillStyle = C.accento;
+  if (p.barre > 0) {
+    const u = p.barre - inizio + 0.5;
+    const x1 = px(p.barreDa, u), y1 = py(p.barreDa, u), x2 = px(p.barreA, u), y2 = py(p.barreA, u);
+    const X = Math.min(x1, x2) - r, Y = Math.min(y1, y2) - r, W = Math.abs(x2 - x1) + 2 * r, H = Math.abs(y2 - y1) + 2 * r;
+    cx.beginPath();
+    if (cx.roundRect) cx.roundRect(X, Y, W, H, r); else cx.rect(X, Y, W, H);
+    cx.fill();
+  }
+
+  for (let s = 0; s < 6; s++) {
+    const f = p.tasti[s];
+    let mx, my;
+    if (!orizz) { mx = px(s, 0); my = oy - 13 * k; }
+    else { mx = manc ? ox + lungo + 13 * k : ox - 13 * k; my = py(s, 0); }
+    if (f < 0) scrivi("×", mx, my + 5 * k, C.rossoX, 15 * k, true, "center");
+    else if (f === 0) { cx.strokeStyle = C.testo; cx.lineWidth = 1.6 * k; cx.beginPath(); cx.arc(mx, my, 5 * k, 0, Math.PI * 2); cx.stroke(); }
+
+    if (f > 0) {
+      const u = f - inizio + 0.5, x = px(s, u), y = py(s, u);
+      const nelBarre = p.barre > 0 && f === p.barre && s >= p.barreDa && s <= p.barreA;
+      if (!nelBarre) { cx.fillStyle = C.accento; cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.fill(); }
+      if (p.dita[s] > 0 && (!nelBarre || s === p.barreDa)) scrivi(String(p.dita[s]), x, y + r * 0.45, C.suAccento, r * 1.3, true, "center");
+    }
+    if (f >= 0) {
+      const classe = (ACCORDATURA[s] + f) % 12, eT = classe === ton;
+      const nn = nomeNota(classe, bem, imp.italiano);
+      const col = eT ? C.accento : C.grigio;
+      if (!orizz) scrivi(nn, px(s, 0), oy + lungo + 16 * k, col, 10.5 * k, eT, "center");
+      else scrivi(nn, manc ? ox - 7 * k : ox + lungo + 7 * k, py(s, 0) + 4 * k, col, 10.5 * k, eT, manc ? "right" : "left");
+    }
+  }
+}
+
+// =====================================================================
+//  SUONO: corda pizzicata (Karplus-Strong) con Web Audio
+// =====================================================================
+let audio = null, sorgente = null;
+function suona(midi) {
+  try {
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    const sr = 22050, n = Math.floor(sr * 2.6), mix = new Float32Array(n), rit = Math.floor(sr * 0.035);
+    midi.forEach((m, k) => {
+      const f = 440 * Math.pow(2, (m - 69) / 12);
+      const per = Math.max(2, Math.round(sr / f));
+      const buf = new Float32Array(per);
+      let prec = 0;
+      for (let i = 0; i < per; i++) { prec = 0.5 * prec + 0.5 * (Math.random() * 2 - 1); buf[i] = prec; }
+      let pos = 0;
+      for (let i = k * rit; i < n; i++) {
+        const a = pos % per, b = (pos + 1) % per, v = buf[a];
+        buf[a] = 0.4985 * (buf[a] + buf[b]);
+        mix[i] += v; pos++;
+      }
+    });
+    let max = 0.0001;
+    for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(mix[i]));
+    const fade = sr / 4;
+    const ab = audio.createBuffer(1, n, sr), ch = ab.getChannelData(0);
+    for (let i = 0; i < n; i++) { let v = mix[i] / max * 0.85; if (i > n - fade) v *= (n - i) / fade; ch[i] = v; }
+    if (sorgente) { try { sorgente.stop(); } catch (e) {} }
+    sorgente = audio.createBufferSource();
+    sorgente.buffer = ab; sorgente.connect(audio.destination); sorgente.start();
+  } catch (e) {}
+}
+
+// =====================================================================
+//  INTERFACCIA
+// =====================================================================
+const $ = id => document.getElementById(id);
+function el(tag, cls, testo) { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; }
+function bottone(testo, attivo, azione) { const b = el("button", "b" + (attivo ? " on" : ""), testo); b.onclick = azione; return b; }
+
+function scheda(p, indice, tipo, conSuona) {
+  const c = el("div", "scheda");
+  const dove = (p.tasti.includes(0) || p.tastoMin <= 1) ? "Prima posizione" : "Dal " + p.tastoMin + "° tasto";
+  c.appendChild(el("h3", null, (indice + 1) + ". " + dove));
+  const cv = el("canvas");
+  cv.style.height = altezzaSchema() + "px";
+  cv._dati = [p, imp.tonica, usaBemolli(imp.tonica, tipo)];
+  cv.onclick = () => suona(noteMidi(p));
+  c.appendChild(cv);
+  c.appendChild(el("div", "tab", testoTab(p) + (p.barre > 0 ? "  •  barrè" : "")));
+  if (conSuona) c.appendChild(bottone("▶  Suona", false, () => suona(noteMidi(p))));
+  return c;
+}
+function ridisegnaTutti() {
+  document.querySelectorAll("canvas").forEach(cv => { if (cv._dati) disegna(cv, ...cv._dati); });
+}
+
+function aggiornaPrincipale() {
+  const rn = $("rigaNote"); rn.innerHTML = "";
+  TONICHE.forEach((t, i) => rn.appendChild(bottone(t + "\n" + TONICHE_IT[i], i === imp.tonica, () => { imp.tonica = i; salva(); aggiornaPrincipale(); })));
+  const rt = $("rigaTipi"); rt.innerHTML = "";
+  TIPI.forEach((t, i) => rt.appendChild(bottone(t.sigla || "Magg.", i === imp.tipo, () => { imp.tipo = i; salva(); aggiornaPrincipale(); })));
+
+  const tipo = TIPI[imp.tipo];
+  $("sigla").textContent = siglaAccordo(imp.tonica, tipo);
+  $("nome").textContent = TONICHE_IT[imp.tonica] + " " + tipo.nome;
+  $("note").textContent = "Note: " + noteAccordo(imp.tonica, tipo);
+
+  const g = $("schemi"); g.innerHTML = "";
+  g.style.setProperty("--col", imp.colonne);
+  posizioni(imp.tonica, imp.tipo).forEach((p, i) => g.appendChild(scheda(p, i, tipo, true)));
+  ridisegnaTutti();
+}
+
+function scelta(voci, attiva, azione) {
+  const r = el("div", "riga");
+  voci.forEach((v, i) => r.appendChild(bottone(v, i === attiva, () => azione(i))));
+  return r;
+}
+function cursore(nome, chiave, min, max) {
+  const box = el("div");
+  const et = el("div", "etichetta", nome + ": " + imp[chiave] + "%");
+  const inp = el("input"); inp.type = "range"; inp.min = min; inp.max = max; inp.step = 5; inp.value = imp[chiave];
+  inp.oninput = () => { et.textContent = nome + ": " + inp.value + "%"; imp[chiave] = +inp.value; salva(); applicaStile(); aggiornaAnteprima(); };
+  inp.onchange = () => cambia();
+  box.appendChild(et); box.appendChild(inp);
+  return box;
+}
+
+function aggiornaAnteprima() {
+  const a = $("anteprima"); a.innerHTML = "";
+  const tipo = TIPI[imp.tipo], pos = posizioni(imp.tonica, imp.tipo);
+  a.appendChild(el("div", "etichetta", "Anteprima: " + siglaAccordo(imp.tonica, tipo)));
+  const g = el("div", "griglia"); g.style.setProperty("--col", imp.colonne);
+  pos.slice(0, imp.colonne).forEach((p, i) => g.appendChild(scheda(p, i, tipo, false)));
+  a.appendChild(g);
+  ridisegnaTutti();
+}
+
+function costruisciOpzioni() {
+  const o = $("opzioni"), y = o.scrollTop; o.innerHTML = "";
+  o.appendChild(el("div", "etichetta", "Tema colori"));
+  const rt = el("div", "riga");
+  TEMI.forEach((t, i) => {
+    const b = bottone(t.nome, false, () => { imp.tema = i; cambia(); });
+    b.style.background = t.sfondo; b.style.color = t.testo;
+    b.style.border = (i === imp.tema ? "3px solid " + ACCENTI[imp.accento][1] : "1px solid " + t.tasti);
+    rt.appendChild(b);
+  });
+  o.appendChild(rt);
+
+  o.appendChild(el("div", "etichetta", "Colore principale: " + ACCENTI[imp.accento][0]));
+  const rc = el("div", "riga");
+  ACCENTI.forEach(([nome, col], i) => {
+    const b = el("button", "pallino" + (i === imp.accento ? " on" : ""), i === imp.accento ? "✓" : "");
+    b.style.background = col; b.style.color = luminosita(col) > 0.55 ? "#1A1A1A" : "#FFF"; b.title = nome;
+    b.onclick = () => { imp.accento = i; cambia(); };
+    rc.appendChild(b);
+  });
+  o.appendChild(rc);
+
+  o.appendChild(el("div", "etichetta", "Carattere"));
+  const rf = el("div", "riga");
+  FONT.forEach(([nome, fam, peso], i) => {
+    const b = bottone(nome, i === imp.font, () => { imp.font = i; cambia(); });
+    b.style.fontFamily = fam; b.style.fontWeight = peso === 300 ? 300 : 700;
+    rf.appendChild(b);
+  });
+  o.appendChild(rf);
+
+  o.appendChild(cursore("Dimensione testo", "testo", 70, 160));
+  o.appendChild(cursore("Dimensione schemi", "immagini", 60, 180));
+
+  o.appendChild(el("div", "etichetta", "Orientamento schemi"));
+  o.appendChild(scelta(["▯  Verticale", "▭  Orizzontale"], imp.orizzontale ? 1 : 0, i => {
+    const nuovo = i === 1;
+    if (nuovo !== imp.orizzontale) { imp.orizzontale = nuovo; imp.colonne = nuovo ? 1 : 2; }
+    cambia();
+  }));
+  o.appendChild(el("div", "etichetta", "Schemi per riga"));
+  o.appendChild(scelta(["1", "2", "3", "4"], imp.colonne - 1, i => { imp.colonne = i + 1; cambia(); }));
+  o.appendChild(el("div", "etichetta", "Mano"));
+  o.appendChild(scelta(["Destrorso", "Mancino"], imp.mancino ? 1 : 0, i => { imp.mancino = i === 1; cambia(); }));
+  o.appendChild(el("div", "etichetta", "Nomi delle note sotto gli schemi"));
+  o.appendChild(scelta(["C  D  E", "Do  Re  Mi"], imp.italiano ? 1 : 0, i => { imp.italiano = i === 1; cambia(); }));
+
+  const reset = bottone("↺  Ripristina impostazioni originali", false, () => {
+    const t = imp.tonica, ti = imp.tipo;
+    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti });
+    cambia();
+  });
+  reset.style.width = "100%"; reset.style.marginTop = "24px";
+  o.appendChild(reset);
+  o.scrollTop = y;
+}
+
+function cambia() {
+  salva(); applicaStile(); costruisciOpzioni(); aggiornaAnteprima(); aggiornaPrincipale();
+}
+
+$("apriStile").onclick = () => { $("pannello").classList.add("aperto"); costruisciOpzioni(); aggiornaAnteprima(); };
+$("chiudiStile").onclick = () => { $("pannello").classList.remove("aperto"); aggiornaPrincipale(); };
+
+let timerResize;
+window.addEventListener("resize", () => { clearTimeout(timerResize); timerResize = setTimeout(ridisegnaTutti, 120); });
+
+applicaStile();
+aggiornaPrincipale();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(ridisegnaTutti);
+</script>
+</body>
+</html>
