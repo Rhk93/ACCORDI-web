@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Accordi">
 <meta name="theme-color" content="#14161B">
-<title>Accordi per Chitarra</title>
+<title>Accordi per Chitarra - Classe chitarra Ignazio</title>
 <style>
   :root {
     --sfondo:#14161B; --carta:#1F232B; --testo:#F2F2F2; --grigio:#9AA0AA;
@@ -26,8 +26,10 @@
   .wrap { max-width: 1100px; margin: 0 auto; }
   .testata { display:flex; align-items:center; gap:8px; }
   .testata h1 { flex:1; margin:0; font-size:calc(22px*var(--st)); font-weight:700; }
+  .titoli { flex:1; min-width:0; }
+  .sottotitolo { color:var(--accento); font-size:calc(14px*var(--st)); font-weight:700; margin-top:2px; }
   .etichetta { color:var(--grigio); font-size:calc(12px*var(--st)); font-weight:700; letter-spacing:.04em; margin:14px 2px 6px; text-transform:uppercase; }
-  .riga { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+  .riga { position:relative; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
   .riga::-webkit-scrollbar { display:none; }
   button.b {
     flex:0 0 auto; font-family:inherit; font-size:calc(15px*var(--st)); font-weight:700; line-height:1.2;
@@ -56,26 +58,41 @@
   .pallino.on { border-color:var(--testo); }
   input[type=range] { width:100%; accent-color:var(--accento); height:32px; }
   .nascosto { display:none; }
+  .sezioni { margin-top:12px; }
+  .sezioni button.b { font-size:calc(16px*var(--st)); padding:10px 16px; }
+  .spiega { color:var(--grigio); font-size:calc(13px*var(--st)); margin:-2px 2px 8px; line-height:1.4; }
+  .tabella { width:100%; border-collapse:separate; border-spacing:0 4px; font-size:calc(14px*var(--st)); }
+  .tabella th { color:var(--grigio); font-size:calc(12px*var(--st)); text-align:left; padding:4px 10px; font-weight:700; }
+  .tabella td { background:var(--carta); padding:10px; }
+  .tabella td:first-child { border-radius:10px 0 0 10px; font-weight:700; color:var(--accento); }
+  .tabella td:last-child { border-radius:0 10px 10px 0; }
+  .tabella tr.on td { background:var(--accento); color:var(--suAccento); }
+  .tabella tr.riga-t { cursor:pointer; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="testata">
-    <h1>Accordi per Chitarra</h1>
+    <div class="titoli"><h1>Accordi per Chitarra</h1><div class="sottotitolo">Classe chitarra Ignazio</div></div>
     <button class="b" id="apriStile">⚙&nbsp; Stile</button>
   </div>
+
+  <div class="riga sezioni" id="sezioni"></div>
 
   <div class="etichetta">Nota</div>
   <div class="riga" id="rigaNote"></div>
 
-  <div class="etichetta">Tipo di accordo</div>
-  <div class="riga" id="rigaTipi"></div>
+  <div id="boxTipi">
+    <div class="etichetta">Tipo di accordo</div>
+    <div class="riga" id="rigaTipi"></div>
+  </div>
 
   <div class="sigla" id="sigla"></div>
   <div class="nome" id="nome"></div>
   <div class="note" id="note"></div>
 
   <div class="griglia" id="schemi"></div>
+  <div id="vistaPower"></div>
 </div>
 
 <div id="pannello">
@@ -324,7 +341,7 @@ const FONT = [
   ["Corsivo",    '"Snell Roundhand", "Apple Chancery", "Segoe Script", cursive', 400],
 ];
 
-const PREDEFINITE = { tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:false, mancino:false, italiano:false, colonne:2, tonica:0, tipo:0 };
+const PREDEFINITE = { sezione:"accordi", tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:false, mancino:false, italiano:false, colonne:2, tonica:0, tipo:0 };
 let imp = Object.assign({}, PREDEFINITE);
 try {
   const s = JSON.parse(localStorage.getItem("accordi-impostazioni") || "null");
@@ -480,10 +497,10 @@ const $ = id => document.getElementById(id);
 function el(tag, cls, testo) { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; }
 function bottone(testo, attivo, azione) { const b = el("button", "b" + (attivo ? " on" : ""), testo); b.onclick = azione; return b; }
 
-function scheda(p, indice, tipo, conSuona) {
+function scheda(p, indice, tipo, conSuona, titolo) {
   const c = el("div", "scheda");
   const dove = (p.tasti.includes(0) || p.tastoMin <= 1) ? "Prima posizione" : "Dal " + p.tastoMin + "° tasto";
-  c.appendChild(el("h3", null, (indice + 1) + ". " + dove));
+  c.appendChild(el("h3", null, titolo || ((indice + 1) + ". " + dove)));
   const cv = el("canvas");
   cv.style.height = altezzaSchema() + "px";
   cv._dati = [p, imp.tonica, usaBemolli(imp.tonica, tipo)];
@@ -497,18 +514,80 @@ function ridisegnaTutti() {
   document.querySelectorAll("canvas").forEach(cv => { if (cv._dati) disegna(cv, ...cv._dati); });
 }
 
+// ---------- Power chords ----------
+const TIPO_POWER = TIPI.find(t => t.sigla === "5");
+function tastoPower(ton, corda) {               // tasto della fondamentale (0..11)
+  const vuota = corda === 6 ? 4 : 9;            // 6ª corda = Mi (E), 5ª corda = La (A)
+  return ((ton - vuota) % 12 + 12) % 12;
+}
+function posPower(ton, corda, treNote) {
+  const f = tastoPower(ton, corda);
+  const s = corda === 6 ? 0 : 1;
+  const tasti = [-1,-1,-1,-1,-1,-1], dita = [0,0,0,0,0,0];
+  tasti[s] = f; tasti[s + 1] = f + 2;
+  if (treNote) tasti[s + 2] = f + 2;
+  if (f > 0) { dita[s] = 1; dita[s + 1] = 3; if (treNote) dita[s + 2] = 4; }
+  else { dita[s + 1] = 1; if (treNote) dita[s + 2] = 2; }
+  const premuti = tasti.filter(x => x > 0);
+  return { tasti, dita, barre: 0, barreDa: -1, barreA: -1,
+           tastoMin: Math.min(...premuti), tastoMax: Math.max(...premuti), punteggio: 0 };
+}
+function testoTasto(f) { return f === 0 ? "corda a vuoto" : "tasto " + f; }
+
+function disegnaPower() {
+  const v = $("vistaPower"); v.innerHTML = "";
+  const ton = imp.tonica;
+  [6, 5].forEach(corda => {
+    const f = tastoPower(ton, corda);
+    v.appendChild(el("div", "etichetta", "Fondamentale sulla " + corda + "ª corda (" + (corda === 6 ? "Mi basso" : "La") + ")"));
+    v.appendChild(el("div", "spiega", TONICHE[ton] + " (" + TONICHE_IT[ton] + ") sulla " + corda + "ª corda: " + testoTasto(f) +
+      ". La quinta e l'ottava stanno due tasti più su, sulle due corde sotto."));
+    const g = el("div", "griglia"); g.style.setProperty("--col", imp.colonne);
+    g.appendChild(scheda(posPower(ton, corda, true), 0, TIPO_POWER, true, "3 note (con l'ottava)"));
+    g.appendChild(scheda(posPower(ton, corda, false), 1, TIPO_POWER, true, "2 note"));
+    v.appendChild(g);
+  });
+
+  v.appendChild(el("div", "etichetta", "Tutti i power chords"));
+  v.appendChild(el("div", "spiega", "Tocca una riga per vedere gli schemi. Stessa forma, si sposta solo il tasto."));
+  const tab = el("table", "tabella");
+  const th = el("tr");
+  ["Accordo", "Sulla 6ª corda", "Sulla 5ª corda"].forEach(x => th.appendChild(el("th", null, x)));
+  tab.appendChild(th);
+  TONICHE.forEach((t, i) => {
+    const tr = el("tr", "riga-t" + (i === ton ? " on" : ""));
+    tr.appendChild(el("td", null, t + "5  ·  " + TONICHE_IT[i]));
+    tr.appendChild(el("td", null, testoTasto(tastoPower(i, 6))));
+    tr.appendChild(el("td", null, testoTasto(tastoPower(i, 5))));
+    tr.onclick = () => { imp.tonica = i; salva(); aggiornaPrincipale(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    tab.appendChild(tr);
+  });
+  v.appendChild(tab);
+}
+
 function aggiornaPrincipale() {
+  const power = imp.sezione === "power";
+  const sz = $("sezioni"); sz.innerHTML = "";
+  sz.appendChild(bottone("Tutti gli accordi", !power, () => { imp.sezione = "accordi"; salva(); aggiornaPrincipale(); }));
+  sz.appendChild(bottone("⚡ Power Chords", power, () => { imp.sezione = "power"; salva(); aggiornaPrincipale(); }));
+  $("boxTipi").classList.toggle("nascosto", power);
+  $("schemi").classList.toggle("nascosto", power);
+  $("vistaPower").classList.toggle("nascosto", !power);
+
   const rn = $("rigaNote"); rn.innerHTML = "";
   TONICHE.forEach((t, i) => rn.appendChild(bottone(t + "\n" + TONICHE_IT[i], i === imp.tonica, () => { imp.tonica = i; salva(); aggiornaPrincipale(); })));
+  const sel = rn.children[imp.tonica];
+  if (sel) rn.scrollLeft = sel.offsetLeft - rn.clientWidth / 2 + sel.offsetWidth / 2;
   const rt = $("rigaTipi"); rt.innerHTML = "";
   TIPI.forEach((t, i) => rt.appendChild(bottone(t.sigla || "Magg.", i === imp.tipo, () => { imp.tipo = i; salva(); aggiornaPrincipale(); })));
 
-  const tipo = TIPI[imp.tipo];
+  const tipo = power ? TIPO_POWER : TIPI[imp.tipo];
   $("sigla").textContent = siglaAccordo(imp.tonica, tipo);
-  $("nome").textContent = TONICHE_IT[imp.tonica] + " " + tipo.nome;
+  $("nome").textContent = TONICHE_IT[imp.tonica] + " " + (power ? "power chord (fondamentale + quinta)" : tipo.nome);
   $("note").textContent = "Note: " + noteAccordo(imp.tonica, tipo);
 
   const g = $("schemi"); g.innerHTML = "";
+  if (power) { disegnaPower(); ridisegnaTutti(); return; }
   g.style.setProperty("--col", imp.colonne);
   posizioni(imp.tonica, imp.tipo).forEach((p, i) => g.appendChild(scheda(p, i, tipo, true)));
   ridisegnaTutti();
@@ -588,7 +667,7 @@ function costruisciOpzioni() {
 
   const reset = bottone("↺  Ripristina impostazioni originali", false, () => {
     const t = imp.tonica, ti = imp.tipo;
-    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti });
+    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti, sezione: imp.sezione });
     cambia();
   });
   reset.style.width = "100%"; reset.style.marginTop = "24px";
