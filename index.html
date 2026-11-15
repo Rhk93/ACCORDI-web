@@ -11,95 +11,134 @@
 <title>Accordi per Chitarra - Classe chitarra Ignazio</title>
 <style>
   :root {
-    --sfondo:#14161B; --carta:#1F232B; --testo:#F2F2F2; --grigio:#9AA0AA;
-    --corde:#C9CDD3; --tasti:#6B7280; --accento:#FF9F1C; --suAccento:#1A1A1A;
-    --font: -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
+    --sfondo:#F2F2F7; --carta:#FFFFFF; --testo:#1C1C1E; --grigio:#8E8E93;
+    --corde:#3A3A3C; --tasti:#C7C7CC; --accento:#007AFF; --suAccento:#FFFFFF;
+    --riempi: rgba(118,118,128,.14); --ombra: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+    --verde:#34C759; --rosso:#FF3B30;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Inter, Roboto, "Segoe UI", sans-serif;
     --peso: 400; --st: 1;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin:0; background:var(--sfondo); color:var(--testo); font-family:var(--font); font-weight:var(--peso); }
-  body {
-    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
-             calc(24px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-    -webkit-text-size-adjust: 100%;
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  .testata { display:flex; align-items:center; gap:8px; }
-  .testata h1 { flex:1; margin:0; font-size:calc(22px*var(--st)); font-weight:700; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--sfondo); color:var(--testo); font-family:var(--font); font-weight:var(--peso);
+    -webkit-font-smoothing:antialiased; letter-spacing:-.01em; }
+  body { padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+         calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); -webkit-text-size-adjust:100%; }
+  .wrap { max-width:1000px; margin:0 auto; }
+  .testata { display:flex; align-items:center; gap:10px; padding-top:6px; }
   .titoli { flex:1; min-width:0; }
-  .sottotitolo { color:var(--accento); font-size:calc(14px*var(--st)); font-weight:700; margin-top:2px; }
-  .etichetta { color:var(--grigio); font-size:calc(12px*var(--st)); font-weight:700; letter-spacing:.04em; margin:14px 2px 6px; text-transform:uppercase; }
-  .riga { position:relative; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+  .testata h1 { margin:0; font-size:calc(32px*var(--st)); font-weight:800; letter-spacing:-.025em; line-height:1.1; }
+  .sottotitolo { color:var(--grigio); font-size:calc(15px*var(--st)); font-weight:500; margin-top:3px; }
+  .tondo { flex:0 0 auto; width:42px; height:42px; border-radius:50%; border:0; background:var(--riempi); color:var(--accento);
+    font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  /* Controllo a segmenti, come su iPhone */
+  .segmenti { display:flex; background:var(--riempi); border-radius:12px; padding:3px; margin:16px 0 4px; gap:2px; }
+  .segmenti button { flex:1; border:0; background:transparent; color:var(--testo); font-family:inherit; font-weight:600;
+    font-size:calc(14px*var(--st)); padding:9px 4px; border-radius:9px; cursor:pointer; white-space:nowrap; }
+  .segmenti button.on { background:var(--carta); box-shadow:0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04); }
+
+  .etichetta { color:var(--grigio); font-size:calc(13px*var(--st)); font-weight:600; margin:18px 4px 8px; text-transform:uppercase; letter-spacing:.02em; }
+  .riga { position:relative; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding:2px 2px 4px; scroll-behavior:smooth; }
   .riga::-webkit-scrollbar { display:none; }
-  button.b {
-    flex:0 0 auto; font-family:inherit; font-size:calc(15px*var(--st)); font-weight:700; line-height:1.2;
-    color:var(--testo); background:var(--carta); border:1px solid var(--tasti);
-    border-radius:12px; padding:8px 14px; min-width:52px; cursor:pointer; white-space:pre-line;
-  }
-  button.b.on { background:var(--accento); color:var(--suAccento); border-color:var(--accento); }
-  .sigla { color:var(--accento); font-size:calc(34px*var(--st)); font-weight:700; margin-top:10px; }
-  .nome { font-size:calc(16px*var(--st)); }
-  .note { color:var(--grigio); font-size:calc(14px*var(--st)); margin:2px 0 8px; }
-  .griglia { display:grid; gap:8px; grid-template-columns:repeat(var(--col,2), minmax(0,1fr)); }
-  .scheda { background:var(--carta); border-radius:14px; padding:8px; display:flex; flex-direction:column; gap:4px; }
-  .scheda h3 { margin:0; text-align:center; font-size:calc(13px*var(--st)); font-weight:700; }
+  button.b { flex:0 0 auto; font-family:inherit; font-size:calc(15px*var(--st)); font-weight:600; line-height:1.2;
+    color:var(--testo); background:var(--carta); border:0; box-shadow:var(--ombra);
+    border-radius:14px; padding:9px 15px; min-width:50px; cursor:pointer; white-space:pre-line; transition:transform .1s; }
+  button.b:active { transform:scale(.96); }
+  button.b.on { background:var(--accento); color:var(--suAccento); }
+  button.b.naturale:not(.on) { background:linear-gradient(var(--tinta), var(--tinta)), var(--carta); box-shadow:inset 0 0 0 1.5px var(--tintaBordo), var(--ombra); }
+  button.b.grande { width:100%; padding:14px; font-size:calc(17px*var(--st)); border-radius:14px; }
+  button.b.pieno { background:var(--accento); color:var(--suAccento); }
+  .nota-it { display:block; font-size:.78em; font-weight:500; opacity:.75; }
+
+  .info { display:flex; align-items:baseline; gap:14px; margin:18px 4px 12px; flex-wrap:wrap; }
+  .sigla { color:var(--accento); font-size:calc(44px*var(--st)); font-weight:800; letter-spacing:-.03em; line-height:1; }
+  .nome { font-size:calc(17px*var(--st)); font-weight:600; }
+  .note { color:var(--grigio); font-size:calc(14px*var(--st)); margin-top:2px; }
+  .griglia { display:grid; gap:12px; grid-template-columns:repeat(var(--col,2), minmax(0,1fr)); }
+  .scheda { background:var(--carta); border-radius:20px; padding:12px 10px 10px; display:flex; flex-direction:column; gap:4px; box-shadow:var(--ombra); }
+  .scheda h3 { margin:0; text-align:center; font-size:calc(14px*var(--st)); font-weight:600; color:var(--grigio); }
   .scheda canvas { width:100%; display:block; cursor:pointer; }
-  .tab { text-align:center; color:var(--grigio); font-size:calc(12px*var(--st)); }
-  .scheda button.b { width:100%; margin-top:4px; }
+  .tab { text-align:center; color:var(--grigio); font-size:calc(12px*var(--st)); font-variant-numeric:tabular-nums; }
+  .scheda button.b { width:100%; margin-top:6px; background:var(--riempi); box-shadow:none; color:var(--accento); }
+  .spiega { color:var(--grigio); font-size:calc(14px*var(--st)); margin:8px 4px 10px; line-height:1.4; }
+  .nascosto { display:none !important; }
+
+  .tabella { width:100%; border-collapse:separate; border-spacing:0; font-size:calc(15px*var(--st)); background:var(--carta);
+    border-radius:16px; overflow:hidden; box-shadow:var(--ombra); }
+  .tabella th { color:var(--grigio); font-size:calc(12px*var(--st)); text-align:left; padding:10px 12px 6px; font-weight:600; text-transform:uppercase; }
+  .tabella td { padding:12px; border-top:1px solid var(--riempi); }
+  .tabella td:first-child { font-weight:700; color:var(--accento); }
+  .tabella tr.on td { background:var(--accento); color:var(--suAccento); }
+  .tabella tr.riga-t { cursor:pointer; }
+
+  /* Esercizi */
+  .giro { display:flex; gap:8px; margin:4px 0 2px; }
+  .giro .passo { flex:1; text-align:center; background:var(--carta); border-radius:14px; padding:10px 4px; box-shadow:var(--ombra);
+    font-weight:700; font-size:calc(17px*var(--st)); color:var(--grigio); transition:all .2s; }
+  .giro .passo small { display:block; font-weight:500; font-size:.7em; margin-top:2px; }
+  .giro .passo.ora { background:var(--accento); color:var(--suAccento); transform:scale(1.04); }
+  .giro .passo.fatto { color:var(--verde); }
+  .punteggio { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 4px; }
+  .punteggio div { background:var(--carta); border-radius:14px; padding:10px 4px; text-align:center; box-shadow:var(--ombra); }
+  .punteggio b { display:block; font-size:calc(24px*var(--st)); font-weight:800; font-variant-numeric:tabular-nums; }
+  .punteggio span { color:var(--grigio); font-size:calc(12px*var(--st)); font-weight:600; }
+  .stato { text-align:center; font-size:calc(18px*var(--st)); font-weight:700; margin:14px 4px 6px; min-height:1.4em; }
+  .stato.ok { color:var(--verde); } .stato.no { color:var(--rosso); }
+  .livello { height:6px; border-radius:3px; background:var(--riempi); overflow:hidden; margin:4px 4px 12px; }
+  .livello i { display:block; height:100%; width:0; background:var(--verde); transition:width .08s; }
+  .comandi { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+  .comandi button.b { width:100%; }
+  .scheda.ok { box-shadow:0 0 0 3px var(--verde), var(--ombra); }
+  .scheda.no { box-shadow:0 0 0 3px var(--rosso), var(--ombra); }
+  .bonus { display:inline-block; background:var(--verde); color:#fff; border-radius:10px; padding:2px 8px; font-size:.8em; margin-left:6px; }
 
   /* Pannello Personalizza */
   #pannello { position:fixed; inset:0; background:var(--sfondo); z-index:10; display:none; flex-direction:column;
-    padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left)); }
+    padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); }
   #pannello.aperto { display:flex; }
-  #pannello .interno { max-width:1100px; width:100%; margin:0 auto; display:flex; flex-direction:column; min-height:0; flex:1; }
+  #pannello .interno { max-width:1000px; width:100%; margin:0 auto; display:flex; flex-direction:column; min-height:0; flex:1; }
+  #pannello .testata h1 { font-size:calc(28px*var(--st)); }
   #anteprima { flex:0 0 auto; }
   #opzioni { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
-  .pallino { flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:3px solid transparent; font-size:18px; font-weight:700; cursor:pointer; }
+  .pallino { flex:0 0 auto; width:40px; height:40px; border-radius:50%; border:3px solid transparent; font-size:17px; font-weight:700; cursor:pointer; }
   .pallino.on { border-color:var(--testo); }
   input[type=range] { width:100%; accent-color:var(--accento); height:32px; }
-  .nascosto { display:none; }
-  .sezioni { margin-top:12px; }
-  .sezioni button.b { font-size:calc(16px*var(--st)); padding:10px 16px; }
-  .spiega { color:var(--grigio); font-size:calc(13px*var(--st)); margin:-2px 2px 8px; line-height:1.4; }
-  .tabella { width:100%; border-collapse:separate; border-spacing:0 4px; font-size:calc(14px*var(--st)); }
-  .tabella th { color:var(--grigio); font-size:calc(12px*var(--st)); text-align:left; padding:4px 10px; font-weight:700; }
-  .tabella td { background:var(--carta); padding:10px; }
-  .tabella td:first-child { border-radius:10px 0 0 10px; font-weight:700; color:var(--accento); }
-  .tabella td:last-child { border-radius:0 10px 10px 0; }
-  .tabella tr.on td { background:var(--accento); color:var(--suAccento); }
-  .tabella tr.riga-t { cursor:pointer; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="testata">
+  <header class="testata">
     <div class="titoli"><h1>Accordi per Chitarra</h1><div class="sottotitolo">Classe chitarra Ignazio</div></div>
-    <button class="b" id="apriStile">⚙&nbsp; Stile</button>
+    <button class="tondo" id="apriStile" aria-label="Personalizza">⚙︎</button>
+  </header>
+
+  <div class="segmenti" id="sezioni"></div>
+
+  <div id="boxNote">
+    <div class="etichetta">Nota</div>
+    <div class="riga" id="rigaNote"></div>
   </div>
-
-  <div class="riga sezioni" id="sezioni"></div>
-
-  <div class="etichetta">Nota</div>
-  <div class="riga" id="rigaNote"></div>
 
   <div id="boxTipi">
     <div class="etichetta">Tipo di accordo</div>
     <div class="riga" id="rigaTipi"></div>
   </div>
 
-  <div class="sigla" id="sigla"></div>
-  <div class="nome" id="nome"></div>
-  <div class="note" id="note"></div>
+  <div class="info" id="boxInfo">
+    <div class="sigla" id="sigla"></div>
+    <div><div class="nome" id="nome"></div><div class="note" id="note"></div></div>
+  </div>
 
   <div class="griglia" id="schemi"></div>
   <div id="vistaPower"></div>
+  <div id="vistaEsercizi"></div>
 </div>
 
 <div id="pannello">
   <div class="interno">
     <div class="testata">
-      <button class="b" id="chiudiStile">←&nbsp; Indietro</button>
-      <h1>&nbsp;Personalizza</h1>
+      <button class="tondo" id="chiudiStile" aria-label="Indietro">‹</button>
+      <h1>Personalizza</h1>
     </div>
     <div id="anteprima"></div>
     <div id="opzioni"></div>
@@ -177,10 +216,33 @@ function noteMidi(p) {
 }
 function zona(p) { return p.tasti.includes(0) ? 0 : p.tastoMin; }
 
-const cache = {};
+// Forme "da manuale" che si insegnano: vengono messe per prime (maggiori, minori, settime)
+const DIDATTICHE = {
+  0: ["x32010","x46664","xx0232","x68886","022100","133211","244322","320003","466544","x02220","x13331","x24442"],
+  1: ["x35543","x46654","xx0231","x68876","022000","133111","244222","355333","466444","x02210","x13321","x24432"],
+  2: ["x32310","x46464","xx0212","x68686","020100","131211","242322","320001","464544","x02020","x13131","x21202"],
+};
+function posizioneDidattica(ton, tipoI) {
+  const tab = DIDATTICHE[tipoI] && DIDATTICHE[tipoI][ton];
+  if (!tab) return null;
+  const t = tab.split("").map(c => c === "x" ? -1 : +c);
+  return valuta(t, ton, TIPI[tipoI], 4);
+}
+
+const cache = {}, cacheTutte = {};
+function tutteLePosizioni(ton, tipoI) { posizioni(ton, tipoI); return cacheTutte[ton + "|" + tipoI] || []; }
 function posizioni(ton, tipoI) {
   const k = ton + "|" + tipoI;
-  if (!cache[k]) cache[k] = calcola(ton, TIPI[tipoI]);
+  if (!cache[k]) {
+    let lista = calcola(ton, TIPI[tipoI]);
+    cacheTutte[k] = lista.tutte;
+    const d = posizioneDidattica(ton, tipoI);
+    if (d) {
+      const chiave = d.tasti.join(",");
+      lista = [d].concat(lista.filter(p => p.tasti.join(",") !== chiave && zona(p) !== zona(d))).slice(0, 7);
+    }
+    cache[k] = lista;
+  }
   return cache[k];
 }
 
@@ -222,6 +284,7 @@ function calcola(ton, tipo) {
     if (!vicina) scelte.push(p);
   }
   scelte.sort((a, b) => zona(a) - zona(b));
+  scelte.tutte = tutte;
   return scelte;
 }
 
@@ -318,36 +381,40 @@ function assegnaDita(p, barre, primo, ultimo) {
 // =====================================================================
 //  IMPOSTAZIONI
 // =====================================================================
-const TEMI = [
-  { nome:"Notte",     sfondo:"#14161B", carta:"#1F232B", testo:"#F2F2F2", grigio:"#9AA0AA", corde:"#C9CDD3", tasti:"#6B7280" },
-  { nome:"Chiaro",    sfondo:"#F2F2EF", carta:"#FFFFFF", testo:"#1C1C1C", grigio:"#6B6B6B", corde:"#4A4A4A", tasti:"#A3A3A3" },
-  { nome:"Legno",     sfondo:"#2B1D14", carta:"#3A281C", testo:"#F5E6D3", grigio:"#C2A88D", corde:"#E8D9C0", tasti:"#8C6E52" },
-  { nome:"Oceano",    sfondo:"#0B1E2D", carta:"#12304A", testo:"#E6F4FF", grigio:"#8FB3CC", corde:"#CFE6F5", tasti:"#4E7391" },
-  { nome:"Seppia",    sfondo:"#F3E9D2", carta:"#FBF5E6", testo:"#3B2F1E", grigio:"#7A6A50", corde:"#5A4A33", tasti:"#B8A585" },
-  { nome:"Bosco",     sfondo:"#102018", carta:"#1A3326", testo:"#E8F5EC", grigio:"#93B5A0", corde:"#D2E8DA", tasti:"#557A63" },
-  { nome:"Contrasto", sfondo:"#000000", carta:"#141414", testo:"#FFFFFF", grigio:"#D0D0D0", corde:"#FFFFFF", tasti:"#9A9A9A" },
+const TEMI = [   // acc = colore principale proposto quando si sceglie il tema
+  { nome:"Chiaro",  acc:0, sfondo:"#F2F2F7", carta:"#FFFFFF", testo:"#1C1C1E", grigio:"#8E8E93", corde:"#3A3A3C", tasti:"#C7C7CC" },
+  { nome:"Scuro",   acc:0, sfondo:"#000000", carta:"#1C1C1E", testo:"#FFFFFF", grigio:"#98989F", corde:"#D1D1D6", tasti:"#48484A" },
+  { nome:"Oceano",  acc:4, sfondo:"#0B1E2D", carta:"#12304A", testo:"#E6F4FF", grigio:"#8FB3CC", corde:"#CFE6F5", tasti:"#4E7391" },
+  { nome:"Seppia",  acc:1, sfondo:"#F3E9D2", carta:"#FBF5E6", testo:"#3B2F1E", grigio:"#7A6A50", corde:"#5A4A33", tasti:"#B8A585" },
+  { nome:"Rosa",    acc:6, sfondo:"#FFF0F6", carta:"#FFFFFF", testo:"#3D1A2B", grigio:"#B07A93", corde:"#6B3A52", tasti:"#F5C2D7" },
+  { nome:"Fucsia",  acc:8, sfondo:"#FFE3F4", carta:"#FFFFFF", testo:"#4A0E33", grigio:"#B0558C", corde:"#7A1F57", tasti:"#F3A6D2" },
+  { nome:"Lavanda", acc:5, sfondo:"#F3EEFF", carta:"#FFFFFF", testo:"#2B1F4A", grigio:"#8B7DB8", corde:"#463A6E", tasti:"#D3C8F5" },
+  { nome:"Menta",   acc:3, sfondo:"#E8FBF2", carta:"#FFFFFF", testo:"#12392B", grigio:"#5E9C84", corde:"#2F5E4C", tasti:"#B6E8D3" },
+  { nome:"Cielo",   acc:4, sfondo:"#E6F4FF", carta:"#FFFFFF", testo:"#0F2A44", grigio:"#6C93B8", corde:"#2E4F70", tasti:"#B9DBF5" },
+  { nome:"Pesca",   acc:1, sfondo:"#FFF1E6", carta:"#FFFFFF", testo:"#4A2A14", grigio:"#B08360", corde:"#6B4428", tasti:"#F6CFAF" },
+  { nome:"Limone",  acc:1, sfondo:"#FFFBDD", carta:"#FFFFFF", testo:"#3D3510", grigio:"#A39550", corde:"#5E5320", tasti:"#EFE3A0" },
 ];
 const ACCENTI = [
-  ["Arancio","#FF9F1C"],["Rosso","#EF4444"],["Verde","#22C55E"],["Azzurro","#38BDF8"],
-  ["Blu","#2563EB"],["Viola","#A78BFA"],["Rosa","#F472B6"],["Giallo","#FACC15"],
+  ["Blu","#007AFF"],["Arancio","#FF9500"],["Rosso","#FF3B30"],["Verde","#34C759"],
+  ["Azzurro","#32ADE6"],["Viola","#AF52DE"],["Rosa","#FF2D55"],["Giallo","#FFCC00"],["Fucsia","#E0218A"],
 ];
 const FONT = [
-  ["Normale",    '-apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif', 400],
-  ["Serif",      'Georgia, "Times New Roman", serif', 400],
-  ["Monospace",  'Menlo, "SF Mono", Consolas, monospace', 400],
-  ["Condensato", '"Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif', 400],
-  ["Sottile",    '"Helvetica Neue", "Segoe UI", Roboto, sans-serif', 300],
+  ["Apple",      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Inter, Roboto, "Segoe UI", sans-serif', 400],
   ["Arrotondato",'ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", sans-serif', 400],
+  ["Serif",      '"New York", ui-serif, Georgia, "Times New Roman", serif', 400],
+  ["Monospace",  'ui-monospace, "SF Mono", Menlo, Consolas, monospace', 400],
+  ["Condensato", '"Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif', 400],
+  ["Sottile",    '-apple-system, "Helvetica Neue", "Segoe UI", Roboto, sans-serif', 300],
   ["Corsivo",    '"Snell Roundhand", "Apple Chancery", "Segoe Script", cursive', 400],
 ];
 
-const PREDEFINITE = { sezione:"accordi", tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:false, mancino:false, italiano:false, colonne:2, tonica:0, tipo:0 };
+const PREDEFINITE = { sezione:"accordi", giro:0, variante:0, zona:0, sensibilita:3, record:0, tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:true, mancino:false, italiano:false, colonne:1, tonica:0, tipo:0 };
 let imp = Object.assign({}, PREDEFINITE);
 try {
-  const s = JSON.parse(localStorage.getItem("accordi-impostazioni") || "null");
+  const s = JSON.parse(localStorage.getItem("accordi-impostazioni-v3") || "null");
   if (s) imp = Object.assign(imp, s);
 } catch (e) {}
-function salva() { try { localStorage.setItem("accordi-impostazioni", JSON.stringify(imp)); } catch (e) {} }
+function salva() { try { localStorage.setItem("accordi-impostazioni-v3", JSON.stringify(imp)); } catch (e) {} }
 
 function luminosita(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -355,7 +422,7 @@ function luminosita(hex) {
 }
 function colori() {
   const t = TEMI[imp.tema], a = ACCENTI[imp.accento][1];
-  return { ...t, accento: a, suAccento: luminosita(a) > 0.55 ? "#1A1A1A" : "#FFFFFF", rossoX: "#EF4444" };
+  return { ...t, accento: a, suAccento: luminosita(a) > 0.55 ? "#1A1A1A" : "#FFFFFF", rossoX: "#FF3B30", verde: "#34C759", rosso: "#FF3B30" };
 }
 function applicaStile() {
   const c = colori(), r = document.documentElement.style;
@@ -363,6 +430,12 @@ function applicaStile() {
   r.setProperty("--testo", c.testo); r.setProperty("--grigio", c.grigio);
   r.setProperty("--corde", c.corde); r.setProperty("--tasti", c.tasti);
   r.setProperty("--accento", c.accento); r.setProperty("--suAccento", c.suAccento);
+  const chiaro = luminosita(c.sfondo) > 0.5;
+  const n = parseInt(c.accento.slice(1), 16), rgb = (n >> 16 & 255) + "," + (n >> 8 & 255) + "," + (n & 255);
+  r.setProperty("--tinta", "rgba(" + rgb + "," + (chiaro ? 0.10 : 0.18) + ")");
+  r.setProperty("--tintaBordo", "rgba(" + rgb + ",0.35)");
+  r.setProperty("--ombra", chiaro ? "0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05)" : "none");
+  r.setProperty("--riempi", chiaro ? "rgba(118,118,128,.14)" : "rgba(118,118,128,.28)");
   r.setProperty("--font", FONT[imp.font][1]); r.setProperty("--peso", FONT[imp.font][2]);
   r.setProperty("--st", imp.testo / 100);
   document.querySelector('meta[name="theme-color"]').setAttribute("content", c.sfondo);
@@ -371,9 +444,9 @@ function applicaStile() {
 // =====================================================================
 //  DISEGNO DELLO SCHEMA (verticale o orizzontale, destrorso o mancino)
 // =====================================================================
-function altezzaSchema() { return (imp.orizzontale ? 125 : 200) * imp.immagini / 100; }
+function altezzaSchema() { return (imp.orizzontale ? 160 : 200) * imp.immagini / 100; }
 
-function disegna(canvas, p, ton, bem) {
+function disegna(canvas, p, ton, bem, esiti) {
   const w = canvas.clientWidth, h = altezzaSchema();
   if (!w) return;
   const dpr = window.devicePixelRatio || 1;
@@ -400,7 +473,7 @@ function disegna(canvas, p, ton, bem) {
     const vicino = 26 * k, latoNomi = 34 * k, su = 24 * k, giu = 8 * k;
     const alt = h - su - giu;
     passoC = alt / 5;
-    const larg = Math.min(w - vicino - latoNomi, alt * 2.4);
+    const larg = Math.min(w - vicino - latoNomi, alt * 2.2);
     passoT = larg / TV; lungo = larg;
     const tot = vicino + larg + latoNomi;
     ox = (w - tot) / 2 + (manc ? latoNomi : vicino); oy = su;
@@ -420,10 +493,14 @@ function disegna(canvas, p, ton, bem) {
     if (!orizz) scrivi(n, manc ? ox + 5 * passoC + 8 * k : ox - 8 * k, py(0, 0.5) + 4 * k, C.grigio, 12 * k, true, manc ? "left" : "right");
     else scrivi(n, px(0, 0.5), oy - 9 * k, C.grigio, 12 * k, true, "center");
   }
-  for (let s = 0; s < 6; s++) linea(px(s, 0), py(s, 0), px(s, TV), py(s, TV), C.corde, (2.2 - s * 0.25) * k);
+  const colEsito = s => esiti ? (esiti[s] === "ok" ? C.verde : esiti[s] === "no" ? C.rosso : null) : null;
+  for (let s = 0; s < 6; s++) {
+    const ce = colEsito(s);
+    linea(px(s, 0), py(s, 0), px(s, TV), py(s, TV), ce || C.corde, (ce ? 3.2 : 2.2 - s * 0.25) * k);
+  }
 
   const r = Math.min(passoC, passoT) * 0.36;
-  cx.fillStyle = C.accento;
+  cx.fillStyle = (p.barre > 0 && colEsito(p.barreDa)) || C.accento;
   if (p.barre > 0) {
     const u = p.barre - inizio + 0.5;
     const x1 = px(p.barreDa, u), y1 = py(p.barreDa, u), x2 = px(p.barreA, u), y2 = py(p.barreA, u);
@@ -444,13 +521,13 @@ function disegna(canvas, p, ton, bem) {
     if (f > 0) {
       const u = f - inizio + 0.5, x = px(s, u), y = py(s, u);
       const nelBarre = p.barre > 0 && f === p.barre && s >= p.barreDa && s <= p.barreA;
-      if (!nelBarre) { cx.fillStyle = C.accento; cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.fill(); }
+      if (!nelBarre) { cx.fillStyle = colEsito(s) || C.accento; cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.fill(); }
       if (p.dita[s] > 0 && (!nelBarre || s === p.barreDa)) scrivi(String(p.dita[s]), x, y + r * 0.45, C.suAccento, r * 1.3, true, "center");
     }
     if (f >= 0) {
       const classe = (ACCORDATURA[s] + f) % 12, eT = classe === ton;
       const nn = nomeNota(classe, bem, imp.italiano);
-      const col = eT ? C.accento : C.grigio;
+      const col = colEsito(s) || (eT ? C.accento : C.grigio);
       if (!orizz) scrivi(nn, px(s, 0), oy + lungo + 16 * k, col, 10.5 * k, eT, "center");
       else scrivi(nn, manc ? ox - 7 * k : ox + lungo + 7 * k, py(s, 0) + 4 * k, col, 10.5 * k, eT, manc ? "right" : "left");
     }
@@ -495,15 +572,23 @@ function suona(midi) {
 // =====================================================================
 const $ = id => document.getElementById(id);
 function el(tag, cls, testo) { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; }
+function bottoneNota(en, it, attivo, azione) {
+  const naturale = !/[#b]/.test(en) && !/[#b]$/.test(it);
+  const b = el("button", "b" + (attivo ? " on" : "") + (naturale ? " naturale" : ""));
+  b.appendChild(document.createTextNode(en));
+  b.appendChild(el("span", "nota-it", it));
+  b.onclick = azione; return b;
+}
 function bottone(testo, attivo, azione) { const b = el("button", "b" + (attivo ? " on" : ""), testo); b.onclick = azione; return b; }
 
-function scheda(p, indice, tipo, conSuona, titolo) {
+function scheda(p, indice, tipo, conSuona, titolo, ton, esiti) {
+  if (ton == null) ton = imp.tonica;
   const c = el("div", "scheda");
   const dove = (p.tasti.includes(0) || p.tastoMin <= 1) ? "Prima posizione" : "Dal " + p.tastoMin + "° tasto";
   c.appendChild(el("h3", null, titolo || ((indice + 1) + ". " + dove)));
   const cv = el("canvas");
   cv.style.height = altezzaSchema() + "px";
-  cv._dati = [p, imp.tonica, usaBemolli(imp.tonica, tipo)];
+  cv._dati = [p, ton, usaBemolli(ton, tipo), esiti];
   cv.onclick = () => suona(noteMidi(p));
   c.appendChild(cv);
   c.appendChild(el("div", "tab", testoTab(p) + (p.barre > 0 ? "  •  barrè" : "")));
@@ -566,16 +651,23 @@ function disegnaPower() {
 }
 
 function aggiornaPrincipale() {
-  const power = imp.sezione === "power";
+  const power = imp.sezione === "power", eserc = imp.sezione === "esercizi";
   const sz = $("sezioni"); sz.innerHTML = "";
-  sz.appendChild(bottone("Tutti gli accordi", !power, () => { imp.sezione = "accordi"; salva(); aggiornaPrincipale(); }));
-  sz.appendChild(bottone("⚡ Power Chords", power, () => { imp.sezione = "power"; salva(); aggiornaPrincipale(); }));
-  $("boxTipi").classList.toggle("nascosto", power);
-  $("schemi").classList.toggle("nascosto", power);
+  [["accordi","Accordi"],["power","Power Chords"],["esercizi","🎤 Esercizi"]].forEach(([id, nome]) => {
+    const b = el("button", imp.sezione === id ? "on" : "", nome);
+    b.onclick = () => { if (imp.sezione !== id) { if (id !== "esercizi") fermaMic(); imp.sezione = id; salva(); aggiornaPrincipale(); window.scrollTo(0, 0); } };
+    sz.appendChild(b);
+  });
+  $("boxNote").classList.toggle("nascosto", eserc);
+  $("boxInfo").classList.toggle("nascosto", eserc);
+  $("boxTipi").classList.toggle("nascosto", power || eserc);
+  $("schemi").classList.toggle("nascosto", power || eserc);
   $("vistaPower").classList.toggle("nascosto", !power);
+  $("vistaEsercizi").classList.toggle("nascosto", !eserc);
+  if (eserc) { disegnaEsercizi(); return; }
 
   const rn = $("rigaNote"); rn.innerHTML = "";
-  TONICHE.forEach((t, i) => rn.appendChild(bottone(t + "\n" + TONICHE_IT[i], i === imp.tonica, () => { imp.tonica = i; salva(); aggiornaPrincipale(); })));
+  TONICHE.forEach((t, i) => rn.appendChild(bottoneNota(TONICHE_IT[i], t, i === imp.tonica, () => { imp.tonica = i; salva(); aggiornaPrincipale(); })));
   const sel = rn.children[imp.tonica];
   if (sel) rn.scrollLeft = sel.offsetLeft - rn.clientWidth / 2 + sel.offsetWidth / 2;
   const rt = $("rigaTipi"); rt.innerHTML = "";
@@ -623,7 +715,7 @@ function costruisciOpzioni() {
   o.appendChild(el("div", "etichetta", "Tema colori"));
   const rt = el("div", "riga");
   TEMI.forEach((t, i) => {
-    const b = bottone(t.nome, false, () => { imp.tema = i; cambia(); });
+    const b = bottone(t.nome, false, () => { imp.tema = i; imp.accento = t.acc; cambia(); });
     b.style.background = t.sfondo; b.style.color = t.testo;
     b.style.border = (i === imp.tema ? "3px solid " + ACCENTI[imp.accento][1] : "1px solid " + t.tasti);
     rt.appendChild(b);
@@ -667,12 +759,13 @@ function costruisciOpzioni() {
 
   const reset = bottone("↺  Ripristina impostazioni originali", false, () => {
     const t = imp.tonica, ti = imp.tipo;
-    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti, sezione: imp.sezione });
+    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti, sezione: imp.sezione, giro: imp.giro, variante: imp.variante, zona: imp.zona, record: imp.record });
     cambia();
   });
   reset.style.width = "100%"; reset.style.marginTop = "24px";
   o.appendChild(reset);
   o.scrollTop = y;
+  [[rt, imp.tema], [rc, imp.accento]].forEach(([r, i]) => { const b = r.children[i]; if (b) r.scrollLeft = b.offsetLeft - r.clientWidth / 2 + b.offsetWidth / 2; });
 }
 
 function cambia() {
@@ -684,6 +777,290 @@ $("chiudiStile").onclick = () => { $("pannello").classList.remove("aperto"); agg
 
 let timerResize;
 window.addEventListener("resize", () => { clearTimeout(timerResize); timerResize = setTimeout(ridisegnaTutti, 120); });
+
+// =====================================================================
+//  ESERCIZI CON IL MICROFONO
+// =====================================================================
+const VARIANTI = [   // [semitoni dalla tonica, tipo (0 magg, 1 min, 2 settima)]
+  [[0,0],[9,1],[5,0],[7,0]],    // Do – Lam – Fa – Sol
+  [[0,0],[9,1],[2,1],[7,0]],    // Do – Lam – Rem – Sol
+  [[0,0],[9,1],[2,1],[7,2]],    // Do – Lam – Rem – Sol7
+  [[0,0],[5,0],[7,0],[0,0]],    // Do – Fa – Sol – Do
+  [[0,0],[7,0],[9,1],[5,0]],    // Do – Sol – Lam – Fa
+];
+const ZONE = [[0, "Prima posizione"], [3, "Dal 3° tasto"], [5, "Dal 5° tasto"], [8, "Dall'8° tasto"]];
+
+/** Sceglie la diteggiatura dell'accordo nella zona del manico richiesta. */
+function scegliPosizione(ton, tipoI, z) {
+  if (z === 0) return posizioni(ton, tipoI)[0];
+  const tutte = tutteLePosizioni(ton, tipoI).filter(p => !p.tasti.includes(0));
+  let migliore = null, punti = -1e9;
+  for (const p of tutte) {
+    const v = p.punteggio * 2 - Math.abs(p.tastoMin - z) * 6 - (p.tastoMin < z - 1 || p.tastoMin > z + 2 ? 20 : 0);
+    if (v > punti) { punti = v; migliore = p; }
+  }
+  return migliore || posizioni(ton, tipoI)[0];
+}
+const SENS = [   // [volume minimo, quota per corda, quota per nota estranea]
+  [0.060, 0.26, 0.30], [0.040, 0.19, 0.40], [0.025, 0.13, 0.50], [0.015, 0.09, 0.60], [0.008, 0.06, 0.72],
+];
+const es = { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] };
+
+function accordiGiro() {
+  return (VARIANTI[imp.variante] || VARIANTI[0]).map(([semi, tipoI]) => {
+    const ton = (imp.giro + semi) % 12;
+    return { ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) };
+  });
+}
+function nomeAccordoIt(a) {
+  const it = TONICHE_IT[a.ton];
+  return a.tipoI === 0 ? it : a.tipoI === 1 ? it + "m" : it + "7";
+}
+function ricominciaGiro() {
+  Object.assign(es, { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] });
+}
+
+function disegnaEsercizi() {
+  const v = $("vistaEsercizi"); v.innerHTML = "";
+  v.appendChild(el("div", "spiega", "Scegli il giro e premi «Inizia». Suona l'accordo evidenziato: se è giusto diventa verde e passi al successivo. Se sbagli, le corde da sistemare diventano rosse."));
+
+  v.appendChild(el("div", "etichetta", "Giro di"));
+  const rg = el("div", "riga");
+  TONICHE_IT.forEach((n, i) => rg.appendChild(bottoneNota(n, TONICHE[i], i === imp.giro, () => { imp.giro = i; salva(); ricominciaGiro(); disegnaEsercizi(); })));
+  v.appendChild(rg);
+  setTimeout(() => { const b = rg.children[imp.giro]; if (b) rg.scrollLeft = b.offsetLeft - rg.clientWidth / 2 + b.offsetWidth / 2; }, 0);
+
+  v.appendChild(el("div", "etichetta", "Accordi del giro"));
+  const rv = el("div", "riga");
+  VARIANTI.forEach((va, i) => {
+    const nomi = va.map(([semi, tipoI]) => nomeAccordoIt({ ton: (imp.giro + semi) % 12, tipoI })).join(" – ");
+    rv.appendChild(bottone(nomi, i === imp.variante, () => { imp.variante = i; salva(); ricominciaGiro(); disegnaEsercizi(); }));
+  });
+  v.appendChild(rv);
+  setTimeout(() => { const b = rv.children[imp.variante]; if (b) rv.scrollLeft = b.offsetLeft - rv.clientWidth / 2 + b.offsetWidth / 2; }, 0);
+
+  v.appendChild(el("div", "etichetta", "Dove suonarlo sul manico"));
+  const sz = el("div", "segmenti");
+  sz.style.marginTop = "0";
+  ZONE.forEach(([z, nome]) => {
+    const b = el("button", z === imp.zona ? "on" : "", nome.replace("Prima posizione", "Prima pos.").replace("Dal ", "").replace("Dall'", ""));
+    b.onclick = () => { imp.zona = z; salva(); ricominciaGiro(); disegnaEsercizi(); };
+    sz.appendChild(b);
+  });
+  v.appendChild(sz);
+
+  const acc = accordiGiro();
+  const giro = el("div", "giro");
+  acc.forEach((a, i) => {
+    const p = el("div", "passo" + (i === es.indice ? " ora" : "") + (es.fatti[i] ? " fatto" : ""));
+    p.appendChild(document.createTextNode(siglaAccordo(a.ton, a.tipo)));
+    p.appendChild(el("small", null, nomeAccordoIt(a)));
+    giro.appendChild(p);
+  });
+  v.appendChild(el("div", "etichetta", "Giro di " + TONICHE_IT[imp.giro] + " · " + ZONE.find(x => x[0] === imp.zona)[1]));
+  v.appendChild(giro);
+
+  const pt = el("div", "punteggio");
+  [["Punti", es.punti], ["Serie", es.serie], ["Giri", es.giri], ["Record", imp.record]].forEach(([n, x]) => {
+    const d = el("div"); d.appendChild(el("b", null, String(x))); d.appendChild(el("span", null, n)); pt.appendChild(d);
+  });
+  v.appendChild(pt);
+
+  const st = el("div", "stato" + (es.esito ? " " + es.esito : ""));
+  st.id = "statoEs";
+  st.innerHTML = es.stato || (micAttivo ? "Suona " + siglaAccordo(acc[es.indice].ton, acc[es.indice].tipo) + "…" : "Premi «Inizia» quando sei pronto");
+  v.appendChild(st);
+  const lv = el("div", "livello"); const barra = el("i"); barra.id = "livelloEs"; lv.appendChild(barra); v.appendChild(lv);
+
+  const a = acc[es.indice];
+  const g = el("div", "griglia"); g.style.setProperty("--col", 1);
+  const doveA = (a.pos.tasti.includes(0) || a.pos.tastoMin <= 1) ? "prima posizione" : "dal " + a.pos.tastoMin + "° tasto";
+  const sc = scheda(a.pos, 0, a.tipo, false, siglaAccordo(a.ton, a.tipo) + " · " + nomeAccordoIt(a) + " · " + doveA, a.ton, es.esiti);
+  if (es.esito) sc.classList.add(es.esito);
+  g.appendChild(sc);
+  v.appendChild(g);
+
+  const cm = el("div", "comandi");
+  const bm = bottone(micAttivo ? "■ Ferma" : "🎤 Inizia", false, () => micAttivo ? (fermaMic(), disegnaEsercizi()) : avviaMic());
+  bm.classList.add("pieno");
+  cm.appendChild(bm);
+  cm.appendChild(bottone("▶ Ascolta", false, () => { pausaFino = performance.now() + 3000; suona(noteMidi(a.pos)); }));
+  cm.appendChild(bottone("Salta ›", false, () => { es.serie = 0; prossimo(false); }));
+  v.appendChild(cm);
+  const rc = bottone("↺ Ricomincia da capo", false, () => { ricominciaGiro(); disegnaEsercizi(); });
+  rc.classList.add("grande"); rc.style.marginTop = "8px";
+  v.appendChild(rc);
+
+  v.appendChild(el("div", "etichetta", "Sensibilità del microfono: " + imp.sensibilita + " su 5"));
+  const inp = el("input"); inp.type = "range"; inp.min = 1; inp.max = 5; inp.step = 1; inp.value = imp.sensibilita;
+  inp.onchange = () => { imp.sensibilita = +inp.value; salva(); disegnaEsercizi(); };
+  v.appendChild(inp);
+  v.appendChild(el("div", "spiega", "Se gli accordi giusti non vengono riconosciuti, alza la sensibilità. Se riconosce accordi sbagliati, abbassala. Funziona meglio in una stanza silenziosa, con il telefono vicino alla chitarra."));
+  ridisegnaTutti();
+}
+
+function prossimo(giusto) {
+  if (giusto) es.fatti[es.indice] = true;
+  es.indice++;
+  if (es.indice >= accordiGiro().length) { es.indice = 0; if (giusto) es.giri++; es.fatti = []; }
+  es.esiti = null; es.esito = ""; es.stato = "";
+  disegnaEsercizi();
+}
+
+// ---------- Microfono e analisi ----------
+let micAttivo = false, micCtx = null, micStream = null, analyser = null, tBuf, fBuf, somma, nSomma = 0;
+let fase = "attesa", tInizio = 0, sottoDa = 0, storicoRms = [], pausaFino = 0, rafMic = 0;
+
+async function avviaMic() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no");
+    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (micCtx.state === "suspended") await micCtx.resume();
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const src = micCtx.createMediaStreamSource(micStream);
+    analyser = micCtx.createAnalyser();
+    analyser.fftSize = 16384;
+    analyser.smoothingTimeConstant = 0;
+    src.connect(analyser);
+    tBuf = new Float32Array(analyser.fftSize);
+    fBuf = new Float32Array(analyser.frequencyBinCount);
+    somma = new Float32Array(analyser.frequencyBinCount);
+    micAttivo = true; fase = "attesa"; sottoDa = performance.now(); storicoRms = [];
+    es.stato = ""; es.esito = "";
+    disegnaEsercizi();
+    rafMic = requestAnimationFrame(cicloMic);
+  } catch (e) {
+    fermaMic();
+    es.esito = "no";
+    es.stato = "Microfono non disponibile. Apri l'app dal suo link (https://…github.io) e consenti l'uso del microfono.";
+    disegnaEsercizi();
+  }
+}
+function fermaMic() {
+  micAttivo = false;
+  cancelAnimationFrame(rafMic);
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  if (micCtx) { try { micCtx.close(); } catch (e) {} }
+  micStream = null; micCtx = null; analyser = null;
+}
+
+function cicloMic() {
+  if (!micAttivo || !analyser) return;
+  rafMic = requestAnimationFrame(cicloMic);
+  const ora = performance.now();
+  analyser.getFloatTimeDomainData(tBuf);
+  let q = 0;
+  for (let i = tBuf.length - 2048; i < tBuf.length; i++) q += tBuf[i] * tBuf[i];
+  const rms = Math.sqrt(q / 2048);
+  const lv = $("livelloEs"); if (lv) lv.style.width = Math.min(100, rms * 600) + "%";
+
+  const [minVol] = SENS[imp.sensibilita - 1];
+  storicoRms.push(rms); if (storicoRms.length > 8) storicoRms.shift();
+  if (rms < minVol * 0.6) { if (!sottoDa) sottoDa = ora; } else if (rms > minVol) { /* suono presente */ }
+
+  if (ora < pausaFino) { fase = "attesa"; return; }
+
+  if (fase === "attesa") {
+    const prima = storicoRms[0] || 0;
+    const silenzioPrima = sottoDa && ora - sottoDa > 120;
+    if (rms > minVol && (silenzioPrima || rms > prima * 1.8)) {
+      fase = "raccolta"; tInizio = ora; somma.fill(0); nSomma = 0; sottoDa = 0;
+      const st = $("statoEs"); if (st) { st.className = "stato"; st.textContent = "Ascolto…"; }
+    } else if (rms >= minVol * 0.6) sottoDa = 0;
+  } else if (fase === "raccolta") {
+    const dt = ora - tInizio;
+    if (dt > 130) {
+      analyser.getFloatFrequencyData(fBuf);
+      for (let i = 0; i < fBuf.length; i++) somma[i] += Math.pow(10, fBuf[i] / 20);
+      nSomma++;
+    }
+    if (dt > 650 && nSomma > 0) {
+      fase = "attesa";
+      valutaAccordo();
+    }
+  }
+}
+
+function frequenza(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+function valutaAccordo() {
+  const acc = accordiGiro()[es.indice];
+  const sr = micCtx.sampleRate, binHz = sr / analyser.fftSize;
+  const spet = somma.map(x => x / nSomma);
+  const [, quotaCorda, quotaEstranea] = SENS[imp.sensibilita - 1];
+  const bin = f => Math.round(f / binHz);
+  const picco = (f, tol) => { let m = 0; for (let i = bin(f * (1 - tol)); i <= bin(f * (1 + tol)); i++) if (spet[i] > m) m = spet[i]; return m; };
+
+  let rif = 0;
+  for (let i = bin(70); i <= bin(1400); i++) if (spet[i] > rif) rif = spet[i];
+  if (rif <= 0) return;
+
+  // 1) Ogni corda: si sente la sua nota? (le armoniche contano solo se nessun'altra corda le produce)
+  const esiti = [null, null, null, null, null, null];
+  const fondamentali = [];
+  for (let s = 0; s < 6; s++) if (acc.pos.tasti[s] >= 0) fondamentali.push(frequenza(ACCORDATURA[s] + acc.pos.tasti[s]));
+  const daAltri = (h, f) => fondamentali.some(fa => Math.abs(fa / f - 1) > 0.02 &&
+    [1, 2, 3, 4, 5, 6].some(k => Math.abs(h / (fa * k) - 1) < 0.02));
+  for (let s = 0; s < 6; s++) {
+    const t = acc.pos.tasti[s];
+    if (t < 0) continue;
+    const f = frequenza(ACCORDATURA[s] + t);
+    let e = picco(f, 0.025);
+    if (!daAltri(2 * f, f)) e = Math.max(e, picco(2 * f, 0.02) * 0.9);
+    if (!daAltri(3 * f, f)) e = Math.max(e, picco(3 * f, 0.02) * 0.7);
+    esiti[s] = e >= rif * quotaCorda ? "ok" : "no";
+  }
+
+  // 2) Note forti che non fanno parte dell'accordo (né armoniche delle note giuste)
+  const classi = new Set(acc.tipo.iv.map(i => (acc.ton + i) % 12));
+  const estranee = new Set();
+  for (let i = bin(75); i <= bin(1100); i++) {
+    if (spet[i] < rif * quotaEstranea || spet[i] < spet[i - 1] || spet[i] < spet[i + 1]) continue;
+    const f = i * binHz;
+    const spiegata = fondamentali.some(fa => { for (let k = 1; k <= 6; k++) if (Math.abs(f / (fa * k) - 1) < 0.03) return true; return false; });
+    if (spiegata) continue;
+    const pc = ((Math.round(12 * Math.log2(f / 440)) + 69) % 12 + 12) % 12;
+    if (!classi.has(pc)) estranee.add(pc);
+  }
+
+  // Una nota estranea vicina (1-2 semitoni) alla nota di una corda indica che quella corda è sbagliata
+  estranee.forEach(pc => {
+    let migliore = -1, dist = 3;
+    for (let s = 0; s < 6; s++) {
+      if (acc.pos.tasti[s] < 0) continue;
+      const pcs = (ACCORDATURA[s] + acc.pos.tasti[s]) % 12;
+      const d = Math.min((pc - pcs + 12) % 12, (pcs - pc + 12) % 12);
+      if (d < dist) { dist = d; migliore = s; }
+    }
+    if (migliore >= 0) esiti[migliore] = "no";
+  });
+  const tutteOk = esiti.every(x => x !== "no");
+
+  const bem = usaBemolli(acc.ton, acc.tipo);
+  if (tutteOk && estranee.size === 0) {
+    es.serie++;
+    const bonus = Math.min(es.serie - 1, 5);
+    es.punti += 1 + bonus;
+    if (es.punti > imp.record) { imp.record = es.punti; salva(); }
+    es.esiti = esiti.map(x => x ? "ok" : null);
+    es.esito = "ok";
+    es.stato = "Giusto! +1" + (bonus > 0 ? '<span class="bonus">serie ×' + es.serie + " +" + bonus + "</span>" : "");
+    pausaFino = performance.now() + 1300;
+    disegnaEsercizi();
+    setTimeout(() => { if (micAttivo && imp.sezione === "esercizi") prossimo(true); }, 1200);
+  } else {
+    es.serie = 0;
+    es.esiti = esiti;
+    es.esito = "no";
+    const mancano = esiti.map((x, s) => x === "no" ? (6 - s) + "ª" : null).filter(Boolean);
+    let msg = "Riprova";
+    if (mancano.length) msg += " · controlla la corda " + mancano.join(", ");
+    if (estranee.size) msg += (mancano.length ? " · " : " · ") + "sento una nota in più: " + [...estranee].map(c => nomeNota(c, bem, true)).join(", ");
+    es.stato = msg;
+    pausaFino = performance.now() + 500;
+    disegnaEsercizi();
+  }
+}
 
 applicaStile();
 aggiornaPrincipale();
