@@ -90,6 +90,12 @@
   .comandi button.b { width:100%; }
   .scheda.ok { box-shadow:0 0 0 3px var(--verde), var(--ombra); }
   .scheda.no { box-shadow:0 0 0 3px var(--rosso), var(--ombra); }
+  .editor { background:var(--carta); border-radius:18px; padding:10px; box-shadow:var(--ombra); margin-top:10px; }
+  .editor .rigaEd { display:grid; grid-template-columns:24px 1fr 1fr 40px; gap:8px; align-items:center; padding:4px 0; }
+  .editor .num { color:var(--grigio); font-weight:700; text-align:center; }
+  .sel { -webkit-appearance:none; appearance:none; width:100%; font-family:inherit; font-size:calc(16px*var(--st)); font-weight:600;
+    color:var(--testo); background:var(--riempi); border:0; border-radius:12px; padding:10px 12px; }
+  .togli { width:40px; height:40px; border-radius:50%; border:0; background:var(--riempi); color:var(--rosso); font-size:18px; font-weight:700; cursor:pointer; }
   .bonus { display:inline-block; background:var(--verde); color:#fff; border-radius:10px; padding:2px 8px; font-size:.8em; margin-left:6px; }
 
   /* Pannello Personalizza */
@@ -408,7 +414,7 @@ const FONT = [
   ["Corsivo",    '"Snell Roundhand", "Apple Chancery", "Segoe Script", cursive', 400],
 ];
 
-const PREDEFINITE = { sezione:"accordi", giro:0, variante:0, zona:0, sensibilita:3, record:0, tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:true, mancino:false, italiano:false, colonne:1, tonica:0, tipo:0 };
+const PREDEFINITE = { sezione:"accordi", giro:0, variante:0, zona:0, mia:[[0,0],[9,1],[2,1],[7,0]], sensibilita:3, record:0, tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:true, mancino:false, italiano:false, colonne:1, tonica:0, tipo:0 };
 let imp = Object.assign({}, PREDEFINITE);
 try {
   const s = JSON.parse(localStorage.getItem("accordi-impostazioni-v3") || "null");
@@ -759,7 +765,7 @@ function costruisciOpzioni() {
 
   const reset = bottone("↺  Ripristina impostazioni originali", false, () => {
     const t = imp.tonica, ti = imp.tipo;
-    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti, sezione: imp.sezione, giro: imp.giro, variante: imp.variante, zona: imp.zona, record: imp.record });
+    imp = Object.assign({}, PREDEFINITE, { tonica: t, tipo: ti, sezione: imp.sezione, giro: imp.giro, variante: imp.variante, zona: imp.zona, mia: imp.mia, record: imp.record });
     cambia();
   });
   reset.style.width = "100%"; reset.style.marginTop = "24px";
@@ -807,6 +813,9 @@ const SENS = [   // [volume minimo, quota per corda, quota per nota estranea]
 const es = { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] };
 
 function accordiGiro() {
+  if (imp.variante === "mia") {
+    return imp.mia.map(([ton, tipoI]) => ({ ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) }));
+  }
   return (VARIANTI[imp.variante] || VARIANTI[0]).map(([semi, tipoI]) => {
     const ton = (imp.giro + semi) % 12;
     return { ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) };
@@ -814,7 +823,7 @@ function accordiGiro() {
 }
 function nomeAccordoIt(a) {
   const it = TONICHE_IT[a.ton];
-  return a.tipoI === 0 ? it : a.tipoI === 1 ? it + "m" : it + "7";
+  return a.tipoI === 0 ? it : a.tipoI === 1 ? it + "m" : it + TIPI[a.tipoI].sigla;
 }
 function ricominciaGiro() {
   Object.assign(es, { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] });
@@ -824,10 +833,13 @@ function disegnaEsercizi() {
   const v = $("vistaEsercizi"); v.innerHTML = "";
   v.appendChild(el("div", "spiega", "Scegli il giro e premi «Inizia». Suona l'accordo evidenziato: se è giusto diventa verde e passi al successivo. Se sbagli, le corde da sistemare diventano rosse."));
 
-  v.appendChild(el("div", "etichetta", "Giro di"));
+  const mia = imp.variante === "mia";
+  const boxGiro = el("div"); if (mia) boxGiro.className = "nascosto";
+  boxGiro.appendChild(el("div", "etichetta", "Giro di"));
   const rg = el("div", "riga");
   TONICHE_IT.forEach((n, i) => rg.appendChild(bottoneNota(n, TONICHE[i], i === imp.giro, () => { imp.giro = i; salva(); ricominciaGiro(); disegnaEsercizi(); })));
-  v.appendChild(rg);
+  boxGiro.appendChild(rg);
+  v.appendChild(boxGiro);
   setTimeout(() => { const b = rg.children[imp.giro]; if (b) rg.scrollLeft = b.offsetLeft - rg.clientWidth / 2 + b.offsetWidth / 2; }, 0);
 
   v.appendChild(el("div", "etichetta", "Accordi del giro"));
@@ -836,8 +848,10 @@ function disegnaEsercizi() {
     const nomi = va.map(([semi, tipoI]) => nomeAccordoIt({ ton: (imp.giro + semi) % 12, tipoI })).join(" – ");
     rv.appendChild(bottone(nomi, i === imp.variante, () => { imp.variante = i; salva(); ricominciaGiro(); disegnaEsercizi(); }));
   });
+  rv.appendChild(bottone("✏️ La mia sequenza", mia, () => { imp.variante = "mia"; salva(); ricominciaGiro(); disegnaEsercizi(); }));
   v.appendChild(rv);
-  setTimeout(() => { const b = rv.children[imp.variante]; if (b) rv.scrollLeft = b.offsetLeft - rv.clientWidth / 2 + b.offsetWidth / 2; }, 0);
+  if (mia) v.appendChild(editorSequenza());
+  setTimeout(() => { const b = rv.children[mia ? VARIANTI.length : imp.variante]; if (b) rv.scrollLeft = b.offsetLeft - rv.clientWidth / 2 + b.offsetWidth / 2; }, 0);
 
   v.appendChild(el("div", "etichetta", "Dove suonarlo sul manico"));
   const sz = el("div", "segmenti");
@@ -857,7 +871,7 @@ function disegnaEsercizi() {
     p.appendChild(el("small", null, nomeAccordoIt(a)));
     giro.appendChild(p);
   });
-  v.appendChild(el("div", "etichetta", "Giro di " + TONICHE_IT[imp.giro] + " · " + ZONE.find(x => x[0] === imp.zona)[1]));
+  v.appendChild(el("div", "etichetta", (mia ? "La mia sequenza" : "Giro di " + TONICHE_IT[imp.giro]) + " · " + ZONE.find(x => x[0] === imp.zona)[1]));
   v.appendChild(giro);
 
   const pt = el("div", "punteggio");
@@ -897,6 +911,33 @@ function disegnaEsercizi() {
   v.appendChild(inp);
   v.appendChild(el("div", "spiega", "Se gli accordi giusti non vengono riconosciuti, alza la sensibilità. Se riconosce accordi sbagliati, abbassala. Funziona meglio in una stanza silenziosa, con il telefono vicino alla chitarra."));
   ridisegnaTutti();
+}
+
+function editorSequenza() {
+  const box = el("div", "editor");
+  box.appendChild(el("div", "spiega", "Scegli da 1 a 4 accordi: la nota e il tipo. Poi premi «Inizia»."));
+  imp.mia.forEach(([ton, tipoI], k) => {
+    const r = el("div", "rigaEd");
+    r.appendChild(el("div", "num", (k + 1) + "."));
+    const sn = el("select", "sel");
+    TONICHE_IT.forEach((n, i) => { const o = el("option", null, n + "  (" + TONICHE[i] + ")"); o.value = i; if (i === ton) o.selected = true; sn.appendChild(o); });
+    const st = el("select", "sel");
+    TIPI.forEach((t, i) => { const o = el("option", null, t.sigla ? t.sigla + " · " + t.nome : "Maggiore"); o.value = i; if (i === tipoI) o.selected = true; st.appendChild(o); });
+    const cambiaRiga = () => { imp.mia[k] = [+sn.value, +st.value]; salva(); ricominciaGiro(); disegnaEsercizi(); };
+    sn.onchange = cambiaRiga; st.onchange = cambiaRiga;
+    r.appendChild(sn); r.appendChild(st);
+    const x = el("button", "togli", "✕"); x.setAttribute("aria-label", "Togli");
+    x.disabled = imp.mia.length <= 1; if (x.disabled) x.style.opacity = .3;
+    x.onclick = () => { imp.mia.splice(k, 1); salva(); ricominciaGiro(); disegnaEsercizi(); };
+    r.appendChild(x);
+    box.appendChild(r);
+  });
+  if (imp.mia.length < 4) {
+    const add = bottone("+ Aggiungi accordo", false, () => { const u = imp.mia[imp.mia.length - 1]; imp.mia.push([(u[0] + 5) % 12, 0]); salva(); ricominciaGiro(); disegnaEsercizi(); });
+    add.classList.add("grande"); add.style.marginTop = "6px"; add.style.boxShadow = "none"; add.style.background = "var(--riempi)"; add.style.color = "var(--accento)";
+    box.appendChild(add);
+  }
+  return box;
 }
 
 function prossimo(giusto) {
