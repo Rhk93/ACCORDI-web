@@ -96,6 +96,32 @@
   .sel { -webkit-appearance:none; appearance:none; width:100%; font-family:inherit; font-size:calc(16px*var(--st)); font-weight:600;
     color:var(--testo); background:var(--riempi); border:0; border-radius:12px; padding:10px 12px; }
   .togli { width:40px; height:40px; border-radius:50%; border:0; background:var(--riempi); color:var(--rosso); font-size:18px; font-weight:700; cursor:pointer; }
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .esitoProva { text-align:center; font-weight:700; font-size:calc(14px*var(--st)); margin-top:6px; }
+  .esitoProva:empty { display:none; }
+  .esitoProva.ok { color:var(--verde); } .esitoProva.no { color:var(--rosso); }
+  .apri { width:100%; display:flex; justify-content:space-between; align-items:center; font-family:inherit; font-size:calc(17px*var(--st));
+    font-weight:600; color:var(--testo); background:var(--carta); border:0; border-radius:16px; padding:14px 16px; margin-top:10px;
+    box-shadow:var(--ombra); cursor:pointer; text-align:left; }
+  .apri b { color:var(--grigio); font-size:1.4em; line-height:1; transition:transform .2s; }
+  .apri.aperto b { transform:rotate(90deg); }
+  .apri.scelto { box-shadow:inset 0 0 0 2px var(--accento), var(--ombra); }
+  .listaGiri { display:flex; flex-direction:column; gap:6px; }
+  .voceGiro { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; font-family:inherit; border:0;
+    border-radius:12px; padding:12px 14px; background:var(--riempi); color:var(--testo); cursor:pointer; text-align:left;
+    font-size:calc(16px*var(--st)); font-weight:600; }
+  .voceGiro small { color:var(--grigio); font-weight:500; font-size:.75em; text-align:right; }
+  .voceGiro.on { background:var(--accento); color:var(--suAccento); } .voceGiro.on small { color:var(--suAccento); opacity:.85; }
+  .metro { display:flex; align-items:center; gap:12px; }
+  .battiti { display:flex; gap:6px; } .battiti i { width:12px; height:12px; border-radius:50%; background:var(--riempi); }
+  .battiti i.on { background:var(--accento); }
+  .tempoBarra { height:10px; border-radius:5px; background:var(--riempi); overflow:hidden; margin:10px 4px 0; }
+  .tempoBarra i { display:block; height:100%; background:var(--verde); transition:width .1s linear; }
+  .tempoBarra i.poco { background:var(--rosso); }
+  .stelline { color:#FFCC00; } .vuote { color:var(--grigio); opacity:.5; }
+  .punteggio b .stelline, .punteggio b .vuote { font-size:.8em; }
+  .risultato { background:var(--carta); border-radius:20px; padding:18px; text-align:center; box-shadow:var(--ombra); margin-top:12px; }
+  .risultato .stelleGrandi { font-size:48px; letter-spacing:6px; line-height:1.1; }
   .bonus { display:inline-block; background:var(--verde); color:#fff; border-radius:10px; padding:2px 8px; font-size:.8em; margin-left:6px; }
 
   /* Pannello Personalizza */
@@ -414,7 +440,7 @@ const FONT = [
   ["Corsivo",    '"Snell Roundhand", "Apple Chancery", "Segoe Script", cursive', 400],
 ];
 
-const PREDEFINITE = { sezione:"accordi", giro:0, variante:0, zona:0, mia:[[0,0],[9,1],[2,1],[7,0]], sensibilita:3, record:0, tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:true, mancino:false, italiano:false, colonne:1, tonica:0, tipo:0 };
+const PREDEFINITE = { sezione:"accordi", giro:0, variante:0, zona:0, mia:[[0,0],[9,1],[2,1],[7,0]], modo:"libero", diff:0, bpm:80, editAperto:false, giriAperti:false, sensibilita:3, record:0, tema:0, accento:0, font:0, testo:100, immagini:100, orizzontale:true, mancino:false, italiano:false, colonne:1, tonica:0, tipo:0 };
 let imp = Object.assign({}, PREDEFINITE);
 try {
   const s = JSON.parse(localStorage.getItem("accordi-impostazioni-v3") || "null");
@@ -598,7 +624,14 @@ function scheda(p, indice, tipo, conSuona, titolo, ton, esiti) {
   cv.onclick = () => suona(noteMidi(p));
   c.appendChild(cv);
   c.appendChild(el("div", "tab", testoTab(p) + (p.barre > 0 ? "  •  barrè" : "")));
-  if (conSuona) c.appendChild(bottone("▶  Suona", false, () => suona(noteMidi(p))));
+  if (conSuona) {
+    const duo = el("div", "duo");
+    duo.appendChild(bottone("▶ Suona", false, () => { pausaFino = performance.now() + 3000; suona(noteMidi(p)); }));
+    const msg = el("div", "esitoProva");
+    const bp = bottone("🎤 Prova", false, () => avviaProva(p, ton, tipo, c, cv, bp, msg));
+    duo.appendChild(bp);
+    c.appendChild(duo); c.appendChild(msg);
+  }
   return c;
 }
 function ridisegnaTutti() {
@@ -657,11 +690,12 @@ function disegnaPower() {
 }
 
 function aggiornaPrincipale() {
+  if (prova) fermaProva();
   const power = imp.sezione === "power", eserc = imp.sezione === "esercizi";
   const sz = $("sezioni"); sz.innerHTML = "";
   [["accordi","Accordi"],["power","Power Chords"],["esercizi","🎤 Esercizi"]].forEach(([id, nome]) => {
     const b = el("button", imp.sezione === id ? "on" : "", nome);
-    b.onclick = () => { if (imp.sezione !== id) { if (id !== "esercizi") fermaMic(); imp.sezione = id; salva(); aggiornaPrincipale(); window.scrollTo(0, 0); } };
+    b.onclick = () => { if (imp.sezione !== id) { fermaProva(); if (id !== "esercizi") { fermaMic(); fermaMetro(); fermaTempo(); } imp.sezione = id; salva(); aggiornaPrincipale(); window.scrollTo(0, 0); } };
     sz.appendChild(b);
   });
   $("boxNote").classList.toggle("nascosto", eserc);
@@ -787,16 +821,28 @@ window.addEventListener("resize", () => { clearTimeout(timerResize); timerResize
 // =====================================================================
 //  ESERCIZI CON IL MICROFONO
 // =====================================================================
-const VARIANTI = [   // [semitoni dalla tonica, tipo (0 magg, 1 min, 2 settima)]
-  [[0,0],[9,1],[5,0],[7,0]],    // Do – Lam – Fa – Sol
-  [[0,0],[9,1],[2,1],[7,0]],    // Do – Lam – Rem – Sol
-  [[0,0],[9,1],[2,1],[7,2]],    // Do – Lam – Rem – Sol7
-  [[0,0],[5,0],[7,0],[0,0]],    // Do – Fa – Sol – Do
-  [[0,0],[7,0],[9,1],[5,0]],    // Do – Sol – Lam – Fa
+const VARIANTI = [   // g = gradi, a = [semitoni dalla tonica, tipo (0 magg, 1 min, 2 settima)]
+  { g:"I – VIm – IV – V",    a:[[0,0],[9,1],[5,0],[7,0]] },
+  { g:"I – VIm – IIm – V",   a:[[0,0],[9,1],[2,1],[7,0]] },
+  { g:"I – VIm – IIm – V7",  a:[[0,0],[9,1],[2,1],[7,2]] },
+  { g:"I – IV – V – I",      a:[[0,0],[5,0],[7,0],[0,0]] },
+  { g:"I – V – VIm – IV",    a:[[0,0],[7,0],[9,1],[5,0]] },
+  { g:"I – IV – I – V7",     a:[[0,0],[5,0],[0,0],[7,2]] },
+  { g:"I – IIIm – IV – V",   a:[[0,0],[4,1],[5,0],[7,0]] },
+  { g:"IIm – V7 – I",        a:[[2,1],[7,2],[0,0]] },
+  { g:"Im – IVm – V – Im",   a:[[0,1],[5,1],[7,0],[0,1]] },
+  { g:"Andaluso: Im – VII – VI – V", a:[[0,1],[10,0],[8,0],[7,0]] },
 ];
 const ZONE = [[0, "Prima posizione"], [3, "Dal 3° tasto"], [5, "Dal 5° tasto"], [8, "Dall'8° tasto"]];
+const DIFF = [
+  { nome:"Facile",    tempo:60, molt:1, stelle:[5, 10, 15] },
+  { nome:"Medio",     tempo:40, molt:2, stelle:[8, 15, 22] },
+  { nome:"Difficile", tempo:25, molt:3, stelle:[10, 20, 30] },
+];
+const SENS = [   // [volume minimo, quota per corda, quota per nota estranea]
+  [0.060, 0.26, 0.30], [0.040, 0.19, 0.40], [0.025, 0.13, 0.50], [0.015, 0.09, 0.60], [0.008, 0.06, 0.72],
+];
 
-/** Sceglie la diteggiatura dell'accordo nella zona del manico richiesta. */
 function scegliPosizione(ton, tipoI, z) {
   if (z === 0) return posizioni(ton, tipoI)[0];
   const tutte = tutteLePosizioni(ton, tipoI).filter(p => !p.tasti.includes(0));
@@ -807,63 +853,98 @@ function scegliPosizione(ton, tipoI, z) {
   }
   return migliore || posizioni(ton, tipoI)[0];
 }
-const SENS = [   // [volume minimo, quota per corda, quota per nota estranea]
-  [0.060, 0.26, 0.30], [0.040, 0.19, 0.40], [0.025, 0.13, 0.50], [0.015, 0.09, 0.60], [0.008, 0.06, 0.72],
-];
-const es = { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] };
+
+const es = { indice:0, punti:0, serie:0, giri:0, giusti:0, esiti:null, esito:"", stato:"", fatti:[], scadenza:0, tempoMax:60, finito:null };
+let timerEs = 0;
 
 function accordiGiro() {
-  if (imp.variante === "mia") {
-    return imp.mia.map(([ton, tipoI]) => ({ ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) }));
-  }
-  return (VARIANTI[imp.variante] || VARIANTI[0]).map(([semi, tipoI]) => {
-    const ton = (imp.giro + semi) % 12;
-    return { ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) };
-  });
+  const lista = imp.variante === "mia" ? imp.mia
+    : (VARIANTI[imp.variante] || VARIANTI[0]).a.map(([semi, t]) => [(imp.giro + semi) % 12, t]);
+  return lista.map(([ton, tipoI]) => ({ ton, tipoI, tipo: TIPI[tipoI], pos: scegliPosizione(ton, tipoI, imp.zona) }));
 }
 function nomeAccordoIt(a) {
   const it = TONICHE_IT[a.ton];
   return a.tipoI === 0 ? it : a.tipoI === 1 ? it + "m" : it + TIPI[a.tipoI].sigla;
 }
+function stelle(n) { const s = DIFF[imp.diff].stelle; return n >= s[2] ? 3 : n >= s[1] ? 2 : n >= s[0] ? 1 : 0; }
+function stelleHtml(n) { return '<span class="stelline">' + "★".repeat(n) + '</span><span class="vuote">' + "☆".repeat(3 - n) + "</span>"; }
+
 function ricominciaGiro() {
-  Object.assign(es, { indice: 0, punti: 0, serie: 0, giri: 0, esiti: null, esito: "", stato: "", fatti: [] });
+  if (es.scadenza) { fermaTempo(); fermaMic(); }
+  Object.assign(es, { indice:0, punti:0, serie:0, giri:0, giusti:0, esiti:null, esito:"", stato:"", fatti:[], finito:null });
 }
+
+function segm(voci, attivo, azione) {
+  const s = el("div", "segmenti"); s.style.marginTop = "0";
+  voci.forEach(([id, nome]) => { const b = el("button", id === attivo ? "on" : "", nome); b.onclick = () => azione(id); s.appendChild(b); });
+  return s;
+}
+function centra(riga, i) { setTimeout(() => { const b = riga.children[i]; if (b) riga.scrollLeft = b.offsetLeft - riga.clientWidth / 2 + b.offsetWidth / 2; }, 0); }
 
 function disegnaEsercizi() {
   const v = $("vistaEsercizi"); v.innerHTML = "";
-  v.appendChild(el("div", "spiega", "Scegli il giro e premi «Inizia». Suona l'accordo evidenziato: se è giusto diventa verde e passi al successivo. Se sbagli, le corde da sistemare diventano rosse."));
+  const mia = imp.variante === "mia", tempo = imp.modo === "tempo";
+  const ridisegna = () => { salva(); ricominciaGiro(); disegnaEsercizi(); };
 
-  const mia = imp.variante === "mia";
-  const boxGiro = el("div"); if (mia) boxGiro.className = "nascosto";
-  boxGiro.appendChild(el("div", "etichetta", "Giro di"));
-  const rg = el("div", "riga");
-  TONICHE_IT.forEach((n, i) => rg.appendChild(bottoneNota(n, TONICHE[i], i === imp.giro, () => { imp.giro = i; salva(); ricominciaGiro(); disegnaEsercizi(); })));
-  boxGiro.appendChild(rg);
-  v.appendChild(boxGiro);
-  setTimeout(() => { const b = rg.children[imp.giro]; if (b) rg.scrollLeft = b.offsetLeft - rg.clientWidth / 2 + b.offsetWidth / 2; }, 0);
+  // ✏️ Personalizza esercizio
+  const pe = el("button", "apri" + (mia ? " scelto" : "") + (imp.editAperto ? " aperto" : ""));
+  pe.innerHTML = "<span>✏️ Personalizza esercizio</span><b>›</b>";
+  pe.onclick = () => { imp.editAperto = !imp.editAperto; if (imp.editAperto) { imp.variante = "mia"; imp.giriAperti = false; } ridisegna(); };
+  v.appendChild(pe);
+  if (imp.editAperto) v.appendChild(editorSequenza());
 
-  v.appendChild(el("div", "etichetta", "Accordi del giro"));
-  const rv = el("div", "riga");
-  VARIANTI.forEach((va, i) => {
-    const nomi = va.map(([semi, tipoI]) => nomeAccordoIt({ ton: (imp.giro + semi) % 12, tipoI })).join(" – ");
-    rv.appendChild(bottone(nomi, i === imp.variante, () => { imp.variante = i; salva(); ricominciaGiro(); disegnaEsercizi(); }));
-  });
-  rv.appendChild(bottone("✏️ La mia sequenza", mia, () => { imp.variante = "mia"; salva(); ricominciaGiro(); disegnaEsercizi(); }));
-  v.appendChild(rv);
-  if (mia) v.appendChild(editorSequenza());
-  setTimeout(() => { const b = rv.children[mia ? VARIANTI.length : imp.variante]; if (b) rv.scrollLeft = b.offsetLeft - rv.clientWidth / 2 + b.offsetWidth / 2; }, 0);
+  // 🎼 Giri armonici (chiuso finché non lo apri)
+  const ga = el("button", "apri" + (!mia ? " scelto" : "") + (imp.giriAperti ? " aperto" : ""));
+  ga.innerHTML = "<span>🎼 Giri armonici</span><b>›</b>";
+  ga.onclick = () => { imp.giriAperti = !imp.giriAperti; if (imp.giriAperti) imp.editAperto = false; salva(); disegnaEsercizi(); };
+  v.appendChild(ga);
+  if (imp.giriAperti) {
+    const box = el("div", "editor");
+    box.appendChild(el("div", "etichetta", "Tonalità"));
+    const rg = el("div", "riga");
+    TONICHE_IT.forEach((n, i) => rg.appendChild(bottoneNota(n, TONICHE[i], i === imp.giro, () => { imp.giro = i; if (mia) imp.variante = 0; ridisegna(); })));
+    box.appendChild(rg); centra(rg, imp.giro);
+    box.appendChild(el("div", "etichetta", "Scegli il giro"));
+    const lista = el("div", "listaGiri");
+    VARIANTI.forEach((va, i) => {
+      const nomi = va.a.map(([semi, t]) => nomeAccordoIt({ ton: (imp.giro + semi) % 12, tipoI: t })).join(" – ");
+      const b = el("button", "voceGiro" + (!mia && i === imp.variante ? " on" : ""));
+      b.appendChild(el("span", null, nomi)); b.appendChild(el("small", null, va.g));
+      b.onclick = () => { imp.variante = i; ridisegna(); };
+      lista.appendChild(b);
+    });
+    box.appendChild(lista);
+    v.appendChild(box);
+  }
 
   v.appendChild(el("div", "etichetta", "Dove suonarlo sul manico"));
-  const sz = el("div", "segmenti");
-  sz.style.marginTop = "0";
-  ZONE.forEach(([z, nome]) => {
-    const b = el("button", z === imp.zona ? "on" : "", nome.replace("Prima posizione", "Prima pos.").replace("Dal ", "").replace("Dall'", ""));
-    b.onclick = () => { imp.zona = z; salva(); ricominciaGiro(); disegnaEsercizi(); };
-    sz.appendChild(b);
-  });
-  v.appendChild(sz);
+  v.appendChild(segm(ZONE.map(([z, n]) => [z, n.replace("Prima posizione", "Prima pos.").replace("Dal ", "").replace("Dall'", "")]), imp.zona, z => { imp.zona = z; ridisegna(); }));
 
+  v.appendChild(el("div", "etichetta", "Modalità"));
+  v.appendChild(segm([["libero", "Libero"], ["tempo", "⏱ A tempo"]], imp.modo, x => { imp.modo = x; ridisegna(); }));
+  if (tempo) {
+    const d = segm(DIFF.map((x, i) => [i, x.nome + " · " + x.tempo + "s"]), imp.diff, x => { imp.diff = x; ridisegna(); });
+    d.style.marginTop = "8px"; v.appendChild(d);
+    v.appendChild(el("div", "spiega", "Il tempo scende: ogni accordo giusto aggiunge 2 secondi. Più accordi fai, più punti e stelle prendi (" +
+      DIFF[imp.diff].stelle.map((s, i) => "★".repeat(i + 1) + " " + s).join(" · ") + ")."));
+  }
+
+  // Metronomo
+  const lbBpm = el("div", "etichetta", "Metronomo: " + imp.bpm + " BPM");
+  v.appendChild(lbBpm);
+  const mr = el("div", "metro");
+  mr.appendChild(bottone(metroTimer ? "■ Ferma" : "🥁 Avvia", !!metroTimer, () => { metroTimer ? fermaMetro() : avviaMetro(); disegnaEsercizi(); }));
+  const bb = el("div", "battiti"); bb.id = "battiti"; for (let i = 0; i < 4; i++) bb.appendChild(el("i"));
+  mr.appendChild(bb);
+  const rb = el("input"); rb.type = "range"; rb.min = 40; rb.max = 200; rb.step = 2; rb.value = imp.bpm; rb.style.flex = "1";
+  rb.oninput = () => lbBpm.textContent = "Metronomo: " + rb.value + " BPM";
+  rb.onchange = () => { imp.bpm = +rb.value; salva(); if (metroTimer) avviaMetro(); };
+  mr.appendChild(rb);
+  v.appendChild(mr);
+
+  // Sequenza in corso
   const acc = accordiGiro();
+  v.appendChild(el("div", "etichetta", (mia ? "La mia sequenza" : "Giro di " + TONICHE_IT[imp.giro]) + " · " + ZONE.find(x => x[0] === imp.zona)[1]));
   const giro = el("div", "giro");
   acc.forEach((a, i) => {
     const p = el("div", "passo" + (i === es.indice ? " ora" : "") + (es.fatti[i] ? " fatto" : ""));
@@ -871,22 +952,39 @@ function disegnaEsercizi() {
     p.appendChild(el("small", null, nomeAccordoIt(a)));
     giro.appendChild(p);
   });
-  v.appendChild(el("div", "etichetta", (mia ? "La mia sequenza" : "Giro di " + TONICHE_IT[imp.giro]) + " · " + ZONE.find(x => x[0] === imp.zona)[1]));
   v.appendChild(giro);
 
+  if (es.finito) {
+    const r = el("div", "risultato");
+    const sg = el("div", "stelleGrandi"); sg.innerHTML = stelleHtml(es.finito.stelle); r.appendChild(sg);
+    r.appendChild(el("div", "nome", es.finito.record ? "Tempo scaduto · Nuovo record! 🎉" : "Tempo scaduto!"));
+    r.appendChild(el("div", "note", es.finito.accordi + " accordi giusti · " + es.finito.punti + " punti · " + DIFF[imp.diff].nome));
+    v.appendChild(r);
+  }
+
   const pt = el("div", "punteggio");
-  [["Punti", es.punti], ["Serie", es.serie], ["Giri", es.giri], ["Record", imp.record]].forEach(([n, x]) => {
-    const d = el("div"); d.appendChild(el("b", null, String(x))); d.appendChild(el("span", null, n)); pt.appendChild(d);
+  const restante = es.scadenza ? Math.max(0, Math.ceil((es.scadenza - performance.now()) / 1000)) : DIFF[imp.diff].tempo;
+  const caselle = tempo
+    ? [["Punti", es.punti], ["Accordi", es.giusti], ["Secondi", restante, "tempoEs"], ["Stelle", stelleHtml(stelle(es.giusti)), "stelleEs"]]
+    : [["Punti", es.punti], ["Serie", es.serie], ["Giri", es.giri], ["Record", imp.record]];
+  caselle.forEach(([n, x, id]) => {
+    const d = el("div"); const b = el("b"); b.innerHTML = String(x); if (id) b.id = id;
+    d.appendChild(b); d.appendChild(el("span", null, n)); pt.appendChild(d);
   });
   v.appendChild(pt);
+  if (tempo) {
+    const tb = el("div", "tempoBarra"); const ti = el("i"); ti.id = "barraTempo";
+    ti.style.width = (es.scadenza ? Math.min(100, restante / es.tempoMax * 100) : 100) + "%";
+    tb.appendChild(ti); v.appendChild(tb);
+  }
 
   const st = el("div", "stato" + (es.esito ? " " + es.esito : ""));
   st.id = "statoEs";
-  st.innerHTML = es.stato || (micAttivo ? "Suona " + siglaAccordo(acc[es.indice].ton, acc[es.indice].tipo) + "…" : "Premi «Inizia» quando sei pronto");
+  st.innerHTML = es.stato || testoAttesa();
   v.appendChild(st);
   const lv = el("div", "livello"); const barra = el("i"); barra.id = "livelloEs"; lv.appendChild(barra); v.appendChild(lv);
 
-  const a = acc[es.indice];
+  const a = acc[Math.min(es.indice, acc.length - 1)];
   const g = el("div", "griglia"); g.style.setProperty("--col", 1);
   const doveA = (a.pos.tasti.includes(0) || a.pos.tastoMin <= 1) ? "prima posizione" : "dal " + a.pos.tastoMin + "° tasto";
   const sc = scheda(a.pos, 0, a.tipo, false, siglaAccordo(a.ton, a.tipo) + " · " + nomeAccordoIt(a) + " · " + doveA, a.ton, es.esiti);
@@ -895,7 +993,9 @@ function disegnaEsercizi() {
   v.appendChild(g);
 
   const cm = el("div", "comandi");
-  const bm = bottone(micAttivo ? "■ Ferma" : "🎤 Inizia", false, () => micAttivo ? (fermaMic(), disegnaEsercizi()) : avviaMic());
+  const bm = bottone(micAttivo && !prova ? "■ Ferma" : (es.finito ? "🎤 Ancora" : "🎤 Inizia"), false, () => {
+    if (micAttivo && !prova) { if (es.scadenza) ricominciaGiro(); else fermaMic(); disegnaEsercizi(); } else avviaMic();
+  });
   bm.classList.add("pieno");
   cm.appendChild(bm);
   cm.appendChild(bottone("▶ Ascolta", false, () => { pausaFino = performance.now() + 3000; suona(noteMidi(a.pos)); }));
@@ -909,8 +1009,14 @@ function disegnaEsercizi() {
   const inp = el("input"); inp.type = "range"; inp.min = 1; inp.max = 5; inp.step = 1; inp.value = imp.sensibilita;
   inp.onchange = () => { imp.sensibilita = +inp.value; salva(); disegnaEsercizi(); };
   v.appendChild(inp);
-  v.appendChild(el("div", "spiega", "Se gli accordi giusti non vengono riconosciuti, alza la sensibilità. Se riconosce accordi sbagliati, abbassala. Funziona meglio in una stanza silenziosa, con il telefono vicino alla chitarra."));
+  v.appendChild(el("div", "spiega", "Se gli accordi giusti non vengono riconosciuti, alza la sensibilità; se riconosce accordi sbagliati, abbassala. Meglio in una stanza silenziosa, col telefono vicino alla chitarra."));
   ridisegnaTutti();
+}
+
+function testoAttesa() {
+  if (!micAttivo || prova) return imp.modo === "tempo" ? "Premi «Inizia»: parte il tempo!" : "Premi «Inizia» quando sei pronto";
+  const acc = accordiGiro(), a = acc[Math.min(es.indice, acc.length - 1)];
+  return "Suona " + siglaAccordo(a.ton, a.tipo) + "…";
 }
 
 function editorSequenza() {
@@ -923,7 +1029,7 @@ function editorSequenza() {
     TONICHE_IT.forEach((n, i) => { const o = el("option", null, n + "  (" + TONICHE[i] + ")"); o.value = i; if (i === ton) o.selected = true; sn.appendChild(o); });
     const st = el("select", "sel");
     TIPI.forEach((t, i) => { const o = el("option", null, t.sigla ? t.sigla + " · " + t.nome : "Maggiore"); o.value = i; if (i === tipoI) o.selected = true; st.appendChild(o); });
-    const cambiaRiga = () => { imp.mia[k] = [+sn.value, +st.value]; salva(); ricominciaGiro(); disegnaEsercizi(); };
+    const cambiaRiga = () => { imp.mia[k] = [+sn.value, +st.value]; imp.variante = "mia"; salva(); ricominciaGiro(); disegnaEsercizi(); };
     sn.onchange = cambiaRiga; st.onchange = cambiaRiga;
     r.appendChild(sn); r.appendChild(st);
     const x = el("button", "togli", "✕"); x.setAttribute("aria-label", "Togli");
@@ -948,11 +1054,81 @@ function prossimo(giusto) {
   disegnaEsercizi();
 }
 
+// ---------- Tempo (modalità a tempo) ----------
+function tickTempo() {
+  const rest = Math.max(0, (es.scadenza - performance.now()) / 1000);
+  const t = $("tempoEs"); if (t) t.textContent = Math.ceil(rest);
+  const b = $("barraTempo"); if (b) { b.style.width = Math.min(100, rest / es.tempoMax * 100) + "%"; b.classList.toggle("poco", rest < 10); }
+  if (rest <= 0) fineTempo();
+}
+function fermaTempo() { clearInterval(timerEs); timerEs = 0; es.scadenza = 0; }
+function fineTempo() {
+  fermaTempo(); fermaMic();
+  const rec = es.punti > imp.record;
+  if (rec) { imp.record = es.punti; salva(); }
+  es.finito = { accordi: es.giusti, punti: es.punti, stelle: stelle(es.giusti), record: rec };
+  es.esito = ""; es.stato = ""; es.esiti = null;
+  disegnaEsercizi();
+}
+
+// ---------- Metronomo ----------
+let metroTimer = 0, metroCtx = null, battito = 0;
+function avviaMetro() {
+  fermaMetro();
+  try { metroCtx = metroCtx || new (window.AudioContext || window.webkitAudioContext)(); metroCtx.resume(); } catch (e) { return; }
+  battito = 0;
+  colpo();
+  metroTimer = setInterval(colpo, 60000 / imp.bpm);
+}
+function fermaMetro() { clearInterval(metroTimer); metroTimer = 0; const bb = $("battiti"); if (bb) [...bb.children].forEach(x => x.classList.remove("on")); }
+function colpo() {
+  const forte = battito % 4 === 0, t = metroCtx.currentTime;
+  const o = metroCtx.createOscillator(), g = metroCtx.createGain();
+  o.frequency.value = forte ? 3200 : 2700;   // acuto: fuori dalle note analizzate
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(forte ? 0.5 : 0.3, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  o.connect(g); g.connect(metroCtx.destination); o.start(t); o.stop(t + 0.06);
+  const bb = $("battiti"); if (bb) [...bb.children].forEach((x, i) => x.classList.toggle("on", i === battito % 4));
+  battito++;
+}
+
+// ---------- Prova del singolo accordo (sezioni Accordi e Power Chords) ----------
+let prova = null;
+async function avviaProva(p, ton, tipo, sc, cv, btn, msg) {
+  if (prova) { const stessa = prova.sc === sc; fermaProva(); if (stessa) return; }
+  if (micAttivo) fermaMic();
+  prova = { pos: p, ton, tipo, sc, cv, btn, msg };
+  sc.classList.remove("ok", "no"); cv._dati[3] = null; disegna(cv, ...cv._dati);
+  btn.textContent = "■ Stop"; msg.className = "esitoProva"; msg.textContent = "Suona l'accordo…";
+  if (!(await apriMic())) {
+    fermaProva();
+    msg.className = "esitoProva no";
+    msg.textContent = "Microfono non disponibile: apri l'app dal suo link (github.io) e consenti il microfono.";
+  }
+}
+function fermaProva() {
+  if (!prova) return;
+  prova.btn.textContent = "🎤 Prova";
+  if (prova.msg.textContent === "Suona l'accordo…" || prova.msg.textContent === "Ascolto…") prova.msg.textContent = "";
+  prova = null; fermaMic();
+}
+function esitoProva(r) {
+  const pv = prova;
+  pv.cv._dati[3] = r.ok ? r.esiti.map(x => x ? "ok" : null) : r.esiti;
+  disegna(pv.cv, ...pv.cv._dati);
+  pv.sc.classList.toggle("ok", r.ok); pv.sc.classList.toggle("no", !r.ok);
+  pv.msg.className = "esitoProva " + (r.ok ? "ok" : "no");
+  pv.msg.textContent = r.ok ? "✓ Suonato bene!" : messaggioErrore(r);
+  pausaFino = performance.now() + 600;
+  if (r.ok) setTimeout(() => { if (prova === pv) fermaProva(); }, 600);
+}
+
 // ---------- Microfono e analisi ----------
 let micAttivo = false, micCtx = null, micStream = null, analyser = null, tBuf, fBuf, somma, nSomma = 0;
-let fase = "attesa", tInizio = 0, sottoDa = 0, storicoRms = [], pausaFino = 0, rafMic = 0;
+let fase = "attesa", tInizio = 0, sottoDa = 0, storicoRms = [], pausaFino = 0, rafMic = 0, livelloPrima = 0, sommaRms = 0, nRms = 0;
 
-async function avviaMic() {
+async function apriMic() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no");
     micCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -967,15 +1143,25 @@ async function avviaMic() {
     fBuf = new Float32Array(analyser.frequencyBinCount);
     somma = new Float32Array(analyser.frequencyBinCount);
     micAttivo = true; fase = "attesa"; sottoDa = performance.now(); storicoRms = [];
-    es.stato = ""; es.esito = "";
-    disegnaEsercizi();
     rafMic = requestAnimationFrame(cicloMic);
-  } catch (e) {
-    fermaMic();
+    return true;
+  } catch (e) { fermaMic(); return false; }
+}
+async function avviaMic() {
+  if (prova) fermaProva();
+  if (imp.modo === "tempo") ricominciaGiro();
+  if (!(await apriMic())) {
     es.esito = "no";
     es.stato = "Microfono non disponibile. Apri l'app dal suo link (https://…github.io) e consenti l'uso del microfono.";
-    disegnaEsercizi();
+    disegnaEsercizi(); return;
   }
+  es.stato = ""; es.esito = "";
+  if (imp.modo === "tempo") {
+    es.tempoMax = DIFF[imp.diff].tempo;
+    es.scadenza = performance.now() + es.tempoMax * 1000;
+    timerEs = setInterval(tickTempo, 100);
+  }
+  disegnaEsercizi();
 }
 function fermaMic() {
   micAttivo = false;
@@ -993,12 +1179,11 @@ function cicloMic() {
   let q = 0;
   for (let i = tBuf.length - 2048; i < tBuf.length; i++) q += tBuf[i] * tBuf[i];
   const rms = Math.sqrt(q / 2048);
-  const lv = $("livelloEs"); if (lv) lv.style.width = Math.min(100, rms * 600) + "%";
+  const lv = $("livelloEs"); if (lv && !prova) lv.style.width = Math.min(100, rms * 600) + "%";
 
   const [minVol] = SENS[imp.sensibilita - 1];
   storicoRms.push(rms); if (storicoRms.length > 8) storicoRms.shift();
-  if (rms < minVol * 0.6) { if (!sottoDa) sottoDa = ora; } else if (rms > minVol) { /* suono presente */ }
-
+  if (rms < minVol * 0.6) { if (!sottoDa) sottoDa = ora; }
   if (ora < pausaFino) { fase = "attesa"; return; }
 
   if (fase === "attesa") {
@@ -1006,17 +1191,25 @@ function cicloMic() {
     const silenzioPrima = sottoDa && ora - sottoDa > 120;
     if (rms > minVol && (silenzioPrima || rms > prima * 1.8)) {
       fase = "raccolta"; tInizio = ora; somma.fill(0); nSomma = 0; sottoDa = 0;
-      const st = $("statoEs"); if (st) { st.className = "stato"; st.textContent = "Ascolto…"; }
+      livelloPrima = prima; sommaRms = 0; nRms = 0;
+      if (prova) prova.msg.textContent = "Ascolto…";
+      else { const st = $("statoEs"); if (st) { st.className = "stato"; st.textContent = "Ascolto…"; } }
     } else if (rms >= minVol * 0.6) sottoDa = 0;
   } else if (fase === "raccolta") {
     const dt = ora - tInizio;
     if (dt > 130) {
       analyser.getFloatFrequencyData(fBuf);
       for (let i = 0; i < fBuf.length; i++) somma[i] += Math.pow(10, fBuf[i] / 20);
-      nSomma++;
+      nSomma++; sommaRms += rms; nRms++;
     }
     if (dt > 650 && nSomma > 0) {
       fase = "attesa";
+      // Suono troppo breve (un colpo del metronomo, un rumore): si ignora
+      if (sommaRms / nRms < Math.max(minVol * 0.8, livelloPrima * 1.25)) {
+        if (prova) prova.msg.textContent = "Suona l'accordo…";
+        else { const st = $("statoEs"); if (st && !es.stato) st.textContent = testoAttesa(); }
+        return;
+      }
       valutaAccordo();
     }
   }
@@ -1024,24 +1217,20 @@ function cicloMic() {
 
 function frequenza(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
-function valutaAccordo() {
-  const acc = accordiGiro()[es.indice];
+function analizza(acc) {
   const sr = micCtx.sampleRate, binHz = sr / analyser.fftSize;
   const spet = somma.map(x => x / nSomma);
   const [, quotaCorda, quotaEstranea] = SENS[imp.sensibilita - 1];
   const bin = f => Math.round(f / binHz);
   const picco = (f, tol) => { let m = 0; for (let i = bin(f * (1 - tol)); i <= bin(f * (1 + tol)); i++) if (spet[i] > m) m = spet[i]; return m; };
-
   let rif = 0;
   for (let i = bin(70); i <= bin(1400); i++) if (spet[i] > rif) rif = spet[i];
-  if (rif <= 0) return;
+  if (rif <= 0) return null;
 
-  // 1) Ogni corda: si sente la sua nota? (le armoniche contano solo se nessun'altra corda le produce)
   const esiti = [null, null, null, null, null, null];
   const fondamentali = [];
   for (let s = 0; s < 6; s++) if (acc.pos.tasti[s] >= 0) fondamentali.push(frequenza(ACCORDATURA[s] + acc.pos.tasti[s]));
-  const daAltri = (h, f) => fondamentali.some(fa => Math.abs(fa / f - 1) > 0.02 &&
-    [1, 2, 3, 4, 5, 6].some(k => Math.abs(h / (fa * k) - 1) < 0.02));
+  const daAltri = (h, f) => fondamentali.some(fa => Math.abs(fa / f - 1) > 0.02 && [1, 2, 3, 4, 5, 6].some(k => Math.abs(h / (fa * k) - 1) < 0.02));
   for (let s = 0; s < 6; s++) {
     const t = acc.pos.tasti[s];
     if (t < 0) continue;
@@ -1052,19 +1241,15 @@ function valutaAccordo() {
     esiti[s] = e >= rif * quotaCorda ? "ok" : "no";
   }
 
-  // 2) Note forti che non fanno parte dell'accordo (né armoniche delle note giuste)
   const classi = new Set(acc.tipo.iv.map(i => (acc.ton + i) % 12));
   const estranee = new Set();
   for (let i = bin(75); i <= bin(1100); i++) {
     if (spet[i] < rif * quotaEstranea || spet[i] < spet[i - 1] || spet[i] < spet[i + 1]) continue;
     const f = i * binHz;
-    const spiegata = fondamentali.some(fa => { for (let k = 1; k <= 6; k++) if (Math.abs(f / (fa * k) - 1) < 0.03) return true; return false; });
-    if (spiegata) continue;
+    if (fondamentali.some(fa => { for (let k = 1; k <= 6; k++) if (Math.abs(f / (fa * k) - 1) < 0.03) return true; return false; })) continue;
     const pc = ((Math.round(12 * Math.log2(f / 440)) + 69) % 12 + 12) % 12;
     if (!classi.has(pc)) estranee.add(pc);
   }
-
-  // Una nota estranea vicina (1-2 semitoni) alla nota di una corda indica che quella corda è sbagliata
   estranee.forEach(pc => {
     let migliore = -1, dist = 3;
     for (let s = 0; s < 6; s++) {
@@ -1075,29 +1260,42 @@ function valutaAccordo() {
     }
     if (migliore >= 0) esiti[migliore] = "no";
   });
-  const tutteOk = esiti.every(x => x !== "no");
+  const ok = esiti.every(x => x !== "no") && estranee.size === 0;
+  return { ok, esiti, estranee, bem: usaBemolli(acc.ton, acc.tipo) };
+}
 
-  const bem = usaBemolli(acc.ton, acc.tipo);
-  if (tutteOk && estranee.size === 0) {
-    es.serie++;
+function messaggioErrore(r) {
+  const mancano = r.esiti.map((x, s) => x === "no" ? (6 - s) + "ª" : null).filter(Boolean);
+  let msg = "Riprova";
+  if (mancano.length) msg += " · controlla la corda " + mancano.join(", ");
+  if (r.estranee.size) msg += " · sento una nota in più: " + [...r.estranee].map(c => nomeNota(c, r.bem, true)).join(", ");
+  return msg;
+}
+
+function valutaAccordo() {
+  const acc = prova || accordiGiro()[es.indice];
+  const r = analizza(acc);
+  if (!r) return;
+  if (prova) { esitoProva(r); return; }
+  const tempo = !!es.scadenza;
+  if (r.ok) {
+    es.serie++; es.giusti++;
     const bonus = Math.min(es.serie - 1, 5);
-    es.punti += 1 + bonus;
-    if (es.punti > imp.record) { imp.record = es.punti; salva(); }
-    es.esiti = esiti.map(x => x ? "ok" : null);
+    const guadagno = (1 + bonus) * (tempo ? DIFF[imp.diff].molt : 1);
+    es.punti += guadagno;
+    if (!tempo && es.punti > imp.record) { imp.record = es.punti; salva(); }
+    if (tempo) es.scadenza += 2000;
+    es.esiti = r.esiti.map(x => x ? "ok" : null);
     es.esito = "ok";
-    es.stato = "Giusto! +1" + (bonus > 0 ? '<span class="bonus">serie ×' + es.serie + " +" + bonus + "</span>" : "");
+    es.stato = "Giusto! +" + guadagno + (bonus > 0 ? '<span class="bonus">serie ×' + es.serie + "</span>" : "") + (tempo ? '<span class="bonus">+2 s</span>' : "");
     pausaFino = performance.now() + 1300;
     disegnaEsercizi();
-    setTimeout(() => { if (micAttivo && imp.sezione === "esercizi") prossimo(true); }, 1200);
+    setTimeout(() => { if (micAttivo && !prova && imp.sezione === "esercizi") prossimo(true); }, 1200);
   } else {
     es.serie = 0;
-    es.esiti = esiti;
+    es.esiti = r.esiti;
     es.esito = "no";
-    const mancano = esiti.map((x, s) => x === "no" ? (6 - s) + "ª" : null).filter(Boolean);
-    let msg = "Riprova";
-    if (mancano.length) msg += " · controlla la corda " + mancano.join(", ");
-    if (estranee.size) msg += (mancano.length ? " · " : " · ") + "sento una nota in più: " + [...estranee].map(c => nomeNota(c, bem, true)).join(", ");
-    es.stato = msg;
+    es.stato = messaggioErrore(r);
     pausaFino = performance.now() + 500;
     disegnaEsercizi();
   }
